@@ -2,7 +2,7 @@
   "name": "baby-ceremony-api",
   "version": "1.0.0",
   "description": "Azure Functions API for baby ceremony invitation",
-  "main": "dist/index.js",
+  "main": "index.js",
   "scripts": {
     "start": "npm run build && func start",
     "build": "tsc && node -e \"require('fs').copyFileSync('host.json', 'dist/host.json'); require('fs').copyFileSync('package.dist.json', 'dist/package.json')\"",
