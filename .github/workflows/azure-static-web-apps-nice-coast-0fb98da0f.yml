@@ -40,6 +40,7 @@ jobs:
           output_location: "dist" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
         env:
+          VITE_API_URL: '/api'
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
           VITE_ADMIN_PIN: ${{ secrets.VITE_ADMIN_PIN }}
           VITE_AZURE_STORAGE_ACCOUNT: ${{ secrets.VITE_AZURE_STORAGE_ACCOUNT }}
