@@ -285,15 +285,15 @@ ${eventDetails.family} 💙`
                 {/* RSVP Status */}
                 {rsvps && rsvps.length > 0 && (
                   <Card className="bg-accent/10 border-accent/30">
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-6">
-                        <Badge variant="secondary" className="text-sm md:text-lg py-2 px-3 md:px-4 w-full md:w-auto justify-center whitespace-nowrap">
-                          <Users size={16} className="mr-2" />
-                          {attendingCount} Families Attending
+                    <CardContent className="pt-6 px-4">
+                      <div className="flex flex-col md:flex-row justify-center items-stretch md:items-center gap-3 md:gap-6 max-w-full">
+                        <Badge variant="secondary" className="text-sm md:text-lg py-2 px-3 md:px-4 flex-1 md:flex-initial justify-center whitespace-nowrap overflow-hidden">
+                          <Users size={16} className="mr-2 flex-shrink-0" />
+                          <span className="truncate">{attendingCount} Families Attending</span>
                         </Badge>
-                        <Badge variant="outline" className="text-sm md:text-lg py-2 px-3 md:px-4 w-full md:w-auto justify-center whitespace-nowrap">
-                          <Heart size={16} className="mr-2" />
-                          {totalGuests} Total Guests
+                        <Badge variant="outline" className="text-sm md:text-lg py-2 px-3 md:px-4 flex-1 md:flex-initial justify-center whitespace-nowrap overflow-hidden">
+                          <Heart size={16} className="mr-2 flex-shrink-0" />
+                          <span className="truncate">{totalGuests} Total Guests</span>
                         </Badge>
                       </div>
                     </CardContent>
