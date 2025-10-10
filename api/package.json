@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "npm run build && func start",
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').copyFileSync('host.json', 'dist/host.json')\"",
     "watch": "tsc --watch",
     "prestart": "npm run build"
   },
