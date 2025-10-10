@@ -1,0 +1,23 @@
+{
+  "name": "baby-ceremony-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for baby ceremony invitation",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run build && func start",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@azure/communication-email": "^1.1.0",
+    "@azure/functions": "^4.0.0",
+    "@azure/storage-blob": "^12.17.0",
+    "@types/nodemailer": "^7.0.2",
+    "nodemailer": "^7.0.9",
+    "react-router-dom": "^7.9.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "azure-functions-core-tools": "^4.0.5455",
+    "typescript": "^5.0.0"
+  }
+}

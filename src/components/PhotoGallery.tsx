@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Camera, Upload, Image as ImageIcon, Heart, Trash } from '@phosphor-icons/react'
+import { Camera, Upload, Image as ImageIcon, Heart } from '@phosphor-icons/react'
 
 interface Photo {
   id: string
@@ -17,14 +16,41 @@ interface Photo {
   timestamp: number
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7071'
+
 export default function PhotoGallery() {
-  const [photos, setPhotos] = useKV<Photo[]>("ceremony-photos", [])
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [uploadData, setUploadData] = useState({
     name: '',
     caption: '',
     file: null as File | null
   })
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
+  // Fetch photos from backend
+  useEffect(() => {
+    const fetchPhotos = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/photos`)
+        if (response.ok) {
+          const data = await response.json()
+          // Ensure data is always an array
+          setPhotos(Array.isArray(data) ? data : [])
+        } else {
+          setPhotos([])
+        }
+      } catch (error) {
+        console.error('Failed to fetch photos:', error)
+        setPhotos([])
+        toast.error('Failed to load photos')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchPhotos()
+  }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -49,54 +75,78 @@ export default function PhotoGallery() {
       return
     }
 
+    setIsUploading(true)
+
     try {
       // Convert file to base64 for storage
       const reader = new FileReader()
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const base64String = event.target?.result as string
         
-        const newPhoto: Photo = {
-          id: Date.now().toString(),
+        const newPhoto = {
           name: uploadData.name,
           url: base64String,
           caption: uploadData.caption,
-          timestamp: Date.now()
         }
 
-        setPhotos(prev => [...(prev || []), newPhoto])
-        
-        toast.success('Photo uploaded successfully!')
-        
-        setUploadData({
-          name: '',
-          caption: '',
-          file: null
+        // Send to backend
+        const response = await fetch(`${API_BASE_URL}/api/photos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newPhoto)
         })
+
+        if (response.ok) {
+          const savedPhoto = await response.json()
+          setPhotos(prev => [...(Array.isArray(prev) ? prev : []), savedPhoto])
+          
+          toast.success('Photo uploaded successfully!')
+          
+          setUploadData({
+            name: '',
+            caption: '',
+            file: null
+          })
+          
+          // Reset file input
+          const fileInput = document.getElementById('photo-upload') as HTMLInputElement
+          if (fileInput) fileInput.value = ''
+        } else {
+          toast.error('Failed to upload photo')
+        }
         
-        // Reset file input
-        const fileInput = document.getElementById('photo-upload') as HTMLInputElement
-        if (fileInput) fileInput.value = ''
+        setIsUploading(false)
+      }
+      
+      reader.onerror = () => {
+        toast.error('Failed to read file')
+        setIsUploading(false)
       }
       
       reader.readAsDataURL(uploadData.file)
     } catch (error) {
+      console.error('Upload error:', error)
       toast.error('Failed to upload photo')
+      setIsUploading(false)
     }
   }
 
-  const deletePhoto = (photoId: string) => {
-    setPhotos(prev => (prev || []).filter(photo => photo.id !== photoId))
-    setSelectedPhoto(null)
-    toast.success('Photo deleted')
-  }
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatDate = (timestamp: number | undefined) => {
+    if (!timestamp || isNaN(timestamp)) {
+      return 'Recently'
+    }
+    try {
+      return new Date(timestamp).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      return 'Recently'
+    }
   }
 
   return (
@@ -149,9 +199,9 @@ export default function PhotoGallery() {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isUploading}>
               <Upload size={18} className="mr-2" />
-              Upload Photo
+              {isUploading ? 'Uploading...' : 'Upload Photo'}
             </Button>
           </form>
         </CardContent>
@@ -199,16 +249,8 @@ export default function PhotoGallery() {
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center justify-between">
-                      <span>Photo by {photo.name}</span>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deletePhoto(photo.id)}
-                        className="ml-2"
-                      >
-                        <Trash size={16} />
-                      </Button>
+                    <DialogTitle>
+                      Photo by {photo.name}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">

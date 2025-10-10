@@ -32,3 +32,21 @@ pids
 .devcontainer/
 
 .spark-workbench-id
+
+# Sensitive files
+*.pem
+*.key
+*.pfx
+*.p12
+*credentials*.txt
+*secret*.txt
+azure-credentials*.txt
+
+# Documentation files with secrets/credentials
+ADD_GITHUB_SECRETS.md
+DEPLOYMENT_SUCCESS.md
+NEXT_STEPS_GUIDE.md
+ADMIN_CREDENTIALS.md
+
+# Backup files with potential secrets
+.env.backup.*

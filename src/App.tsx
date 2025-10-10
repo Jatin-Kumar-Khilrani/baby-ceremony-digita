@@ -1,5 +1,5 @@
-import { useKV } from '@github/spark/hooks'
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,8 @@ import {
   Phone,
   ChatCircle,
   Gift,
-  Star
+  Star,
+  GearSix
 } from '@phosphor-icons/react'
 import QRCodeComponent from './components/QRCodeComponent'
 import PhotoGallery from './components/PhotoGallery'
@@ -49,11 +50,44 @@ interface Wish {
   timestamp: number
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7071'
+
 function App() {
-  const [rsvps, setRSVPs] = useKV<RSVP[]>("ceremony-rsvps", [])
-  const [wishes, setWishes] = useKV<Wish[]>("ceremony-wishes", [])
+  const [rsvps, setRSVPs] = useState<RSVP[]>([])
+  const [isLoadingRSVPs, setIsLoadingRSVPs] = useState(true)
   const [currentTab, setCurrentTab] = useState("invitation")
   const [qrCodeUrl, setQrCodeUrl] = useState("")
+
+  // Fetch RSVPs from backend
+  useEffect(() => {
+    const fetchRSVPs = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/rsvps`)
+        console.log('RSVP Response status:', response.status)
+        
+        if (response.ok) {
+          const text = await response.text()
+          console.log('RSVP Response text:', text)
+          
+          if (text) {
+            const data = JSON.parse(text)
+            setRSVPs(data)
+          } else {
+            setRSVPs([])
+          }
+        } else {
+          console.error('Response not ok:', response.status, response.statusText)
+          setRSVPs([])
+        }
+      } catch (error) {
+        console.error('Failed to fetch RSVPs:', error)
+        setRSVPs([])
+      } finally {
+        setIsLoadingRSVPs(false)
+      }
+    }
+    fetchRSVPs()
+  }, [])
 
   useEffect(() => {
     setQrCodeUrl(window.location.href)
@@ -101,6 +135,16 @@ ${eventDetails.family} 💙`
   return (
     <div className="min-h-screen bg-background baby-pattern">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Admin Link */}
+        <div className="flex justify-end mb-4">
+          <Link to="/admin">
+            <Button variant="outline" size="sm" className="gap-2">
+              <GearSix size={16} />
+              Admin Panel
+            </Button>
+          </Link>
+        </div>
+        
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="invitation" className="flex items-center gap-2">
@@ -264,7 +308,7 @@ ${eventDetails.family} 💙`
           </TabsContent>
 
           <TabsContent value="wishes">
-            <GuestWishes wishes={wishes || []} setWishes={setWishes} />
+            <GuestWishes />
           </TabsContent>
 
           <TabsContent value="photos">

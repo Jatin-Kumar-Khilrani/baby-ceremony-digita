@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,18 +15,41 @@ interface Wish {
   timestamp: number
 }
 
-interface GuestWishesProps {
-  wishes: Wish[]
-  setWishes: (updater: (prev: Wish[]) => Wish[]) => void
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7071'
 
-export default function GuestWishes({ wishes, setWishes }: GuestWishesProps) {
+export default function GuestWishes() {
+  const [wishes, setWishes] = useState<Wish[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [wishData, setWishData] = useState({
     name: '',
     message: ''
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch wishes from backend
+  useEffect(() => {
+    const fetchWishes = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/wishes`)
+        if (response.ok) {
+          const data = await response.json()
+          // Ensure data is always an array
+          setWishes(Array.isArray(data) ? data : [])
+        } else {
+          setWishes([])
+        }
+      } catch (error) {
+        console.error('Failed to fetch wishes:', error)
+        setWishes([])
+        toast.error('Failed to load wishes')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchWishes()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!wishData.name || !wishData.message) {
@@ -34,30 +57,55 @@ export default function GuestWishes({ wishes, setWishes }: GuestWishesProps) {
       return
     }
 
-    const newWish: Wish = {
-      id: Date.now().toString(),
-      name: wishData.name,
-      message: wishData.message,
-      timestamp: Date.now()
-    }
+    setIsSubmitting(true)
 
-    setWishes(prev => [...(prev || []), newWish])
-    
-    toast.success('Thank you for your beautiful wishes!')
-    
-    setWishData({
-      name: '',
-      message: ''
-    })
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/wishes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: wishData.name,
+          message: wishData.message
+        })
+      })
+
+      if (response.ok) {
+        const newWish = await response.json()
+        setWishes(prev => [...(Array.isArray(prev) ? prev : []), newWish])
+        
+        toast.success('Thank you for your beautiful wishes!')
+        
+        setWishData({
+          name: '',
+          message: ''
+        })
+      } else {
+        toast.error('Failed to submit wish')
+      }
+    } catch (error) {
+      console.error('Submit error:', error)
+      toast.error('Failed to submit wish')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatDate = (timestamp: number | undefined) => {
+    if (!timestamp || isNaN(timestamp)) {
+      return 'Recently'
+    }
+    try {
+      return new Date(timestamp).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      return 'Recently'
+    }
   }
 
   return (
@@ -98,9 +146,9 @@ export default function GuestWishes({ wishes, setWishes }: GuestWishesProps) {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
               <PaperPlaneTilt size={18} className="mr-2" />
-              Send Wishes
+              {isSubmitting ? 'Sending...' : 'Send Wishes'}
             </Button>
           </form>
         </CardContent>
@@ -120,8 +168,8 @@ export default function GuestWishes({ wishes, setWishes }: GuestWishesProps) {
 
         {wishes && wishes.length > 0 ? (
           <div className="space-y-4">
-            {wishes.slice().reverse().map((wish) => (
-              <Card key={wish.id} className="bg-gradient-to-r from-muted/30 to-accent/10 border-accent/20">
+            {wishes.slice().reverse().map((wish, index) => (
+              <Card key={wish.id || `wish-${index}`} className="bg-gradient-to-r from-muted/30 to-accent/10 border-accent/20">
                 <CardContent className="pt-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
