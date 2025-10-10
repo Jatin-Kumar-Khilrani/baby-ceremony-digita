@@ -286,13 +286,13 @@ ${eventDetails.family} 💙`
                 {rsvps && rsvps.length > 0 && (
                   <Card className="bg-accent/10 border-accent/30">
                     <CardContent className="pt-6">
-                      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6">
-                        <Badge variant="secondary" className="text-base sm:text-lg py-2 px-4 w-full sm:w-auto justify-center">
-                          <Users size={18} className="mr-2" />
+                      <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-6">
+                        <Badge variant="secondary" className="text-sm md:text-lg py-2 px-3 md:px-4 w-full md:w-auto justify-center whitespace-nowrap">
+                          <Users size={16} className="mr-2" />
                           {attendingCount} Families Attending
                         </Badge>
-                        <Badge variant="outline" className="text-base sm:text-lg py-2 px-4 w-full sm:w-auto justify-center">
-                          <Heart size={18} className="mr-2" />
+                        <Badge variant="outline" className="text-sm md:text-lg py-2 px-3 md:px-4 w-full md:w-auto justify-center whitespace-nowrap">
+                          <Heart size={16} className="mr-2" />
                           {totalGuests} Total Guests
                         </Badge>
                       </div>
