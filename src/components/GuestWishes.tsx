@@ -30,7 +30,7 @@ export default function GuestWishes() {
   useEffect(() => {
     const fetchWishes = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/wishes`)
+        const response = await fetch(`${API_BASE_URL}/wishes`)
         if (response.ok) {
           const data = await response.json()
           // Ensure data is always an array
@@ -60,7 +60,7 @@ export default function GuestWishes() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/wishes`, {
+      const response = await fetch(`${API_BASE_URL}/wishes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -33,7 +33,7 @@ export default function PhotoGallery() {
   useEffect(() => {
     const fetchPhotos = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/photos`)
+        const response = await fetch(`${API_BASE_URL}/photos`)
         if (response.ok) {
           const data = await response.json()
           // Ensure data is always an array
@@ -90,7 +90,7 @@ export default function PhotoGallery() {
         }
 
         // Send to backend
-        const response = await fetch(`${API_BASE_URL}/api/photos`, {
+        const response = await fetch(`${API_BASE_URL}/photos`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

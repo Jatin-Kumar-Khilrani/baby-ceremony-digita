@@ -62,7 +62,7 @@ function App() {
   useEffect(() => {
     const fetchRSVPs = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/rsvps`)
+        const response = await fetch(`${API_BASE_URL}/rsvps`)
         console.log('RSVP Response status:', response.status)
         
         if (response.ok) {
