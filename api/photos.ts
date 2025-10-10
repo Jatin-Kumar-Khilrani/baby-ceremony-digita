@@ -117,11 +117,31 @@ export async function photos(request: HttpRequest, context: InvocationContext): 
       
       if (action === 'replace') {
         // Admin operation: replace entire metadata array
-        await savePhotoMetadata(body);
+        // First, get the current metadata to find deleted items
+        const currentMetadata = await getPhotoMetadata();
+        const newMetadata = body as any[];
+        
+        // Find photos that were deleted (in current but not in new)
+        const newIds = new Set(newMetadata.map((p: any) => p.id));
+        const deletedPhotos = currentMetadata.filter((p: any) => !newIds.has(p.id));
+        
+        // Delete the actual blob files for deleted photos
+        for (const photo of deletedPhotos) {
+          try {
+            const blobClient = containerClient.getBlobClient(photo.id);
+            await blobClient.deleteIfExists();
+            context.log(`Deleted blob: ${photo.id}`);
+          } catch (error) {
+            context.warn(`Failed to delete blob ${photo.id}:`, error);
+          }
+        }
+        
+        // Save the new metadata
+        await savePhotoMetadata(newMetadata);
         return {
           status: 200,
           headers,
-          body: JSON.stringify({ success: true, message: 'Photos updated successfully' })
+          body: JSON.stringify({ success: true, message: 'Photos updated successfully', deleted: deletedPhotos.length })
         };
       }
       
