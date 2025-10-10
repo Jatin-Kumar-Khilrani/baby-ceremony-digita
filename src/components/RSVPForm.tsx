@@ -12,8 +12,8 @@ import { Users, Check, X, Heart, Pencil, Trash, MagnifyingGlass } from '@phospho
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 
-// API endpoint - use relative path in production, localhost for development
-const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api'
+// API endpoint - use environment variable if set, otherwise fallback to dev/prod defaults
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:7071/api' : '/api')
 
 interface GoogleUser {
   email: string
