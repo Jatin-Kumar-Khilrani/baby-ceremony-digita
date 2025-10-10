@@ -2,10 +2,12 @@
   "name": "baby-ceremony-api",
   "version": "1.0.0",
   "description": "Azure Functions API for baby ceremony invitation",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "start": "npm run build && func start",
-    "build": "tsc"
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prestart": "npm run build"
   },
   "dependencies": {
     "@azure/communication-email": "^1.1.0",
