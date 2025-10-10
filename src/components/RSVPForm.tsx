@@ -12,6 +12,9 @@ import { Users, Check, X, Heart, Pencil, Trash, MagnifyingGlass } from '@phospho
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 
+// API endpoint - use relative path in production, localhost for development
+const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api'
+
 interface GoogleUser {
   email: string
   name: string
@@ -65,7 +68,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     setIsSendingPin(true)
     try {
       const response = await fetch(
-        `http://localhost:7071/api/rsvps?action=search&email=${encodeURIComponent(foundRsvp.email)}`,
+        `${API_BASE}/rsvps?action=search&email=${encodeURIComponent(foundRsvp.email)}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -76,7 +79,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         const result = await response.json()
         if (result.found) {
           // Refresh RSVP data to get the new PIN
-          const refreshResponse = await fetch('http://localhost:7071/api/rsvps')
+          const refreshResponse = await fetch(`${API_BASE}/rsvps`)
           if (refreshResponse.ok) {
             const allRsvps = await refreshResponse.json()
             const updated = allRsvps.find((rsvp: RSVP) => rsvp.id === foundRsvp.id)
@@ -135,7 +138,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     
     try {
       // Just search for the RSVP, don't send PIN yet
-      const response = await fetch('http://localhost:7071/api/rsvps')
+      const response = await fetch(`${API_BASE}/rsvps`)
       
       if (!response.ok) {
         toast.error('Failed to search for RSVP. Please try again.')
@@ -224,7 +227,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     // Save to backend
     try {
       const updatedRsvps = (rsvps || []).filter(r => r.id !== rsvp.id)
-      const response = await fetch('http://localhost:7071/api/rsvps?action=replace', {
+      const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedRsvps)
@@ -282,7 +285,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
 
       // Save to backend
       try {
-        const response = await fetch('http://localhost:7071/api/rsvps?action=replace', {
+        const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(rsvps?.map(r => r.id === editingRsvp.id ? updatedRSVP : r) || [])
@@ -327,7 +330,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
 
       // Save to backend
       try {
-        const response = await fetch('http://localhost:7071/api/rsvps', {
+        const response = await fetch(`${API_BASE}/rsvps`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newRSVP)
