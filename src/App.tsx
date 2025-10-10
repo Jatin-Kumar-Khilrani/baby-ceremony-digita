@@ -284,16 +284,16 @@ ${eventDetails.family} 💙`
 
                 {/* RSVP Status */}
                 {rsvps && rsvps.length > 0 && (
-                  <Card className="bg-accent/10 border-accent/30">
-                    <CardContent className="pt-6 px-4">
-                      <div className="flex flex-col md:flex-row justify-center items-stretch md:items-center gap-3 md:gap-6 max-w-full">
-                        <Badge variant="secondary" className="text-sm md:text-lg py-2 px-3 md:px-4 flex-1 md:flex-initial justify-center whitespace-nowrap overflow-hidden">
-                          <Users size={16} className="mr-2 flex-shrink-0" />
-                          <span className="truncate">{attendingCount} Families Attending</span>
+                  <Card className="bg-accent/10 border-accent/30 mx-0">
+                    <CardContent className="pt-6 pb-6 px-2 sm:px-4">
+                      <div className="flex flex-col md:flex-row justify-center items-center gap-2 md:gap-6 w-full">
+                        <Badge variant="secondary" className="text-xs sm:text-sm md:text-lg py-1.5 sm:py-2 px-2 sm:px-3 md:px-4 w-full max-w-[48%] md:max-w-none md:w-auto flex items-center justify-center">
+                          <Users size={14} className="mr-1 sm:mr-2 flex-shrink-0" />
+                          <span className="truncate text-center">{attendingCount} Families</span>
                         </Badge>
-                        <Badge variant="outline" className="text-sm md:text-lg py-2 px-3 md:px-4 flex-1 md:flex-initial justify-center whitespace-nowrap overflow-hidden">
-                          <Heart size={16} className="mr-2 flex-shrink-0" />
-                          <span className="truncate">{totalGuests} Total Guests</span>
+                        <Badge variant="outline" className="text-xs sm:text-sm md:text-lg py-1.5 sm:py-2 px-2 sm:px-3 md:px-4 w-full max-w-[48%] md:max-w-none md:w-auto flex items-center justify-center">
+                          <Heart size={14} className="mr-1 sm:mr-2 flex-shrink-0" />
+                          <span className="truncate text-center">{totalGuests} Guests</span>
                         </Badge>
                       </div>
                     </CardContent>
