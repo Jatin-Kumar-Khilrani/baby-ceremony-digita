@@ -284,16 +284,16 @@ ${eventDetails.family} 💙`
 
                 {/* RSVP Status */}
                 {rsvps && rsvps.length > 0 && (
-                  <Card className="bg-accent/10 border-accent/30 mx-0">
-                    <CardContent className="pt-6 pb-6 px-2 sm:px-4">
-                      <div className="flex flex-col md:flex-row justify-center items-center gap-2 md:gap-6 w-full">
-                        <Badge variant="secondary" className="text-xs sm:text-sm md:text-lg py-1.5 sm:py-2 px-2 sm:px-3 md:px-4 w-full max-w-[48%] md:max-w-none md:w-auto flex items-center justify-center">
-                          <Users size={14} className="mr-1 sm:mr-2 flex-shrink-0" />
-                          <span className="truncate text-center">{attendingCount} Families</span>
+                  <Card className="bg-accent/10 border-accent/30">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                        <Badge variant="secondary" className="text-sm md:text-base lg:text-lg py-2 px-3 flex items-center justify-center">
+                          <Users className="w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" />
+                          <span className="truncate">{attendingCount} Families</span>
                         </Badge>
-                        <Badge variant="outline" className="text-xs sm:text-sm md:text-lg py-1.5 sm:py-2 px-2 sm:px-3 md:px-4 w-full max-w-[48%] md:max-w-none md:w-auto flex items-center justify-center">
-                          <Heart size={14} className="mr-1 sm:mr-2 flex-shrink-0" />
-                          <span className="truncate text-center">{totalGuests} Guests</span>
+                        <Badge variant="outline" className="text-sm md:text-base lg:text-lg py-2 px-3 flex items-center justify-center">
+                          <Heart className="w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" />
+                          <span className="truncate">{totalGuests} Guests</span>
                         </Badge>
                       </div>
                     </CardContent>
