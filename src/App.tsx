@@ -29,6 +29,8 @@ import {
 import QRCodeComponent from './components/QRCodeComponent'
 import PhotoGallery from './components/PhotoGallery'
 import RSVPForm from './components/RSVPForm'
+import WelcomeScreen from './components/WelcomeScreen'
+import TourGuide from './components/TourGuide'
 import GuestWishes from './components/GuestWishes'
 
 interface RSVP {
@@ -57,6 +59,20 @@ function App() {
   const [isLoadingRSVPs, setIsLoadingRSVPs] = useState(true)
   const [currentTab, setCurrentTab] = useState("invitation")
   const [qrCodeUrl, setQrCodeUrl] = useState("")
+  const [showWelcome, setShowWelcome] = useState(true)
+
+  // Check if user has seen welcome screen
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('baby-ceremony-welcome-seen')
+    if (hasSeenWelcome) {
+      setShowWelcome(false)
+    }
+  }, [])
+
+  const handleContinueFromWelcome = () => {
+    localStorage.setItem('baby-ceremony-welcome-seen', 'true')
+    setShowWelcome(false)
+  }
 
   // Fetch RSVPs from backend
   useEffect(() => {
@@ -133,8 +149,13 @@ ${eventDetails.family} 💙`
   }
 
   return (
-    <div className="min-h-screen bg-background baby-pattern">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <>
+      {showWelcome ? (
+        <WelcomeScreen onContinue={handleContinueFromWelcome} />
+      ) : (
+        <div className="min-h-screen bg-background baby-pattern">
+          <TourGuide />
+          <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Admin Link */}
         <div className="flex justify-end mb-4">
           <Link to="/admin">
@@ -147,19 +168,19 @@ ${eventDetails.family} 💙`
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="invitation" className="flex items-center gap-2">
+            <TabsTrigger value="invitation" className="flex items-center gap-2" data-tour="invitation">
               <Baby size={18} />
               Invitation
             </TabsTrigger>
-            <TabsTrigger value="rsvp" className="flex items-center gap-2">
+            <TabsTrigger value="rsvp" className="flex items-center gap-2" data-tour="rsvp">
               <Users size={18} />
               RSVP
             </TabsTrigger>
-            <TabsTrigger value="wishes" className="flex items-center gap-2">
+            <TabsTrigger value="wishes" className="flex items-center gap-2" data-tour="wishes">
               <Heart size={18} />
               Wishes
             </TabsTrigger>
-            <TabsTrigger value="photos" className="flex items-center gap-2">
+            <TabsTrigger value="photos" className="flex items-center gap-2" data-tour="photos">
               <Camera size={18} />
               Photos
             </TabsTrigger>
@@ -246,6 +267,20 @@ ${eventDetails.family} 💙`
                         <span className="text-accent text-sm">{eventDetails.address}</span>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-3 pt-2 border-t border-accent/20">
+                      <Phone size={20} className="text-primary" />
+                      <div>
+                        <span className="font-semibold text-destructive">Contact:</span>
+                        <a 
+                          href="tel:+919772854400" 
+                          className="text-primary font-medium ml-2 hover:underline"
+                        >
+                          +91-9772854400
+                        </a>
+                        <span className="text-muted-foreground text-sm ml-2">(Mr Rajendra Kumar Khilrani)</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -317,6 +352,8 @@ ${eventDetails.family} 💙`
         </Tabs>
       </div>
     </div>
+      )}
+    </>
   )
 }
 
