@@ -143,7 +143,8 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
       if (isSearchRequest && searchEmail) {
         // User is searching for their RSVP - send PIN if found
         const existingData = await getStorageData("rsvps.json");
-        const existingRsvp = existingData.find((r: any) => 
+        const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+        const existingRsvp = rsvpsArray.find((r: any) => 
           r.email && r.email.toLowerCase() === searchEmail.toLowerCase()
         );
         
@@ -181,8 +182,8 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
             existingRsvp.pinEmailSent = false;
           }
           
-          // Save updated data with new PIN
-          await saveStorageData("rsvps.json", existingRsvp);
+          // CRITICAL FIX: Save the entire array, not just the single RSVP
+          await saveStorageData("rsvps.json", rsvpsArray);
           
           return {
             status: 200,
