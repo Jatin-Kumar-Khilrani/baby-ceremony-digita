@@ -93,19 +93,37 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
       // Ensure data is always an array
       const rsvpsArray = Array.isArray(data) ? data : (data ? [data] : []);
       
+      // DEBUG LOGGING
+      context.log('=== GET REQUEST DEBUG ===');
+      context.log('Search email:', searchEmail);
+      context.log('Data from storage:', JSON.stringify(data));
+      context.log('RSVPs array:', JSON.stringify(rsvpsArray));
+      context.log('Array length:', rsvpsArray.length);
+      if (rsvpsArray.length > 0) {
+        context.log('Emails in storage:', rsvpsArray.map((r: any) => r.email));
+      }
+      
       // If email query parameter is provided, return only that specific RSVP
       if (searchEmail) {
-        const found = rsvpsArray.find((rsvp: any) => 
-          rsvp.email && rsvp.email.toLowerCase() === searchEmail.toLowerCase()
-        );
+        context.log('Searching for email:', searchEmail.toLowerCase());
+        
+        const found = rsvpsArray.find((rsvp: any) => {
+          const match = rsvp.email && rsvp.email.toLowerCase() === searchEmail.toLowerCase();
+          context.log(`Comparing "${rsvp.email?.toLowerCase()}" === "${searchEmail.toLowerCase()}" = ${match}`);
+          return match;
+        });
+        
+        context.log('Found result:', found ? 'YES' : 'NO');
         
         if (found) {
+          context.log('Returning 200 with RSVP:', JSON.stringify(found));
           return {
             status: 200,
             headers,
             body: JSON.stringify(found)
           };
         } else {
+          context.log('Returning 404 - not found');
           return {
             status: 404,
             headers,
