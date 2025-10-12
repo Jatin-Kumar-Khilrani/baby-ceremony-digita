@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from "react-error-boundary";
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from './components/ui/sonner'
 
 import App from './App.tsx'
 import Admin from './pages/Admin.tsx'
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </BrowserRouter>
+      <Toaster />
     </GoogleOAuthProvider>
    </ErrorBoundary>
 )

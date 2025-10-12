@@ -97,8 +97,14 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
             const allRsvps = await refreshResponse.json()
             const updated = allRsvps.find((rsvp: RSVP) => rsvp.id === foundRsvp.id)
             if (updated) {
-              setFoundRsvp(updated)
-              setRSVPs(() => allRsvps)
+              // Normalize dietary restrictions for legacy data
+              const normalizedRsvp = {
+                ...updated,
+                dietaryRestrictions: (updated.dietaryRestrictions === 'Fasting' || updated.dietaryRestrictions === 'Vegetarian') 
+                  ? updated.dietaryRestrictions 
+                  : ''
+              }
+              setFoundRsvp(normalizedRsvp)
             }
           }
           setShowPinOption(true)
@@ -128,7 +134,9 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       
       // Check if the Google email matches the found RSVP email
       if (foundRsvp && user.email.toLowerCase() === foundRsvp.email.toLowerCase()) {
-        toast.success(`Welcome ${user.name}! You can now edit or delete your RSVP.`)
+        toast.success(`Welcome ${user.name}! Your RSVP is loaded below for editing.`)
+        // Automatically load the form for editing
+        handleEdit(foundRsvp)
       } else if (foundRsvp) {
         toast.error('This Google account email does not match the RSVP email.')
         setGoogleUser(null)
@@ -150,32 +158,37 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     setIsSearching(true)
     
     try {
-      // Just search for the RSVP, don't send PIN yet
-      const response = await fetch(`${API_BASE}/rsvps`)
+      // Search for specific RSVP by email (more efficient - only fetches one RSVP)
+      const response = await fetch(`${API_BASE}/rsvps?email=${encodeURIComponent(searchEmail)}`)
       
-      if (!response.ok) {
-        toast.error('Failed to search for RSVP. Please try again.')
-        setIsSearching(false)
-        return
-      }
-      
-      const allRsvps = await response.json()
-      const found = allRsvps.find((rsvp: RSVP) => 
-        rsvp.email && searchEmail && rsvp.email.toLowerCase() === searchEmail.toLowerCase()
-      )
-      
-      if (found) {
-        setFoundRsvp(found)
-        setRSVPs(() => allRsvps)
+      if (response.ok) {
+        const found = await response.json()
+        
+        // Normalize dietary restrictions for legacy data
+        const normalizedRsvp = {
+          ...found,
+          dietaryRestrictions: (found.dietaryRestrictions === 'Fasting' || found.dietaryRestrictions === 'Vegetarian') 
+            ? found.dietaryRestrictions 
+            : ''
+        }
+        setFoundRsvp(normalizedRsvp)
         setGoogleUser(null)
         setIsPinVerified(false)
         setVerifyPin('')
         setShowPinOption(false) // Reset PIN option
         
         toast.success('✅ RSVP found! Please verify using Google Sign-In or request a PIN.')
+      } else if (response.status === 404) {
+        setFoundRsvp(null)
+        // Pre-fill the email in the form for convenience
+        setFormData(prev => ({ ...prev, email: searchEmail }))
+        toast.message('No RSVP Found', {
+          description: 'You can submit a new RSVP using the form below! 👇',
+          duration: 5000,
+        })
       } else {
         setFoundRsvp(null)
-        toast.error('No RSVP found with this email')
+        toast.error('Failed to search for RSVP. Please try again.')
       }
     } catch (error) {
       console.error('Error searching for RSVP:', error)
@@ -193,7 +206,9 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     
     if (verifyPin === foundRsvp.pin) {
       setIsPinVerified(true)
-      toast.success('PIN verified! You can now edit or delete your RSVP.')
+      toast.success('PIN verified! Your RSVP is loaded below for editing.')
+      // Automatically load the form for editing
+      handleEdit(foundRsvp)
     } else {
       toast.error('Incorrect PIN. Please try again.')
     }
@@ -216,7 +231,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       phone: rsvp.phone,
       attending: rsvp.attending ? 'yes' : 'no',
       guests: rsvp.guests.toString(),
-      dietaryRestrictions: rsvp.dietaryRestrictions,
+      // Normalize dietary restrictions to match new dropdown options ('None', 'Fasting', 'Vegetarian')
+      dietaryRestrictions: (rsvp.dietaryRestrictions === 'Fasting' || rsvp.dietaryRestrictions === 'Vegetarian') 
+        ? rsvp.dietaryRestrictions 
+        : 'None',
       message: rsvp.message,
       arrivalDateTime: rsvp.arrivalDateTime || '',
       departureDateTime: rsvp.departureDateTime || '',
@@ -439,9 +457,6 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     })
   }
 
-  const attendingCount = rsvps?.filter(rsvp => rsvp.attending).length || 0
-  const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
-
   return (
     <div className="space-y-6">
       {/* RSVP Stats - Removed to keep attendance information private */}
@@ -478,18 +493,8 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
 
           {foundRsvp && (
             <div className="mt-4 p-4 border rounded-lg bg-muted/30">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-lg">{foundRsvp.name}</h3>
-                  <p className="text-sm text-muted-foreground">{foundRsvp.email}</p>
-                  <p className="text-sm mt-1">
-                    {foundRsvp.attending ? '✓ Attending' : '✗ Not Attending'} • {foundRsvp.guests} guest{foundRsvp.guests > 1 ? 's' : ''}
-                  </p>
-                </div>
-              </div>
-
               {!googleUser && !isPinVerified ? (
-                <div className="border-t pt-4 space-y-4">
+                <div className="space-y-4">
                   <div>
                     <p className="text-sm font-semibold mb-2">
                       🔐 Two ways to verify your identity:
@@ -817,15 +822,15 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
                   // Normalize legacy values to match new options
                   formData.dietaryRestrictions === 'Fasting' || formData.dietaryRestrictions === 'Vegetarian' 
                     ? formData.dietaryRestrictions 
-                    : ''
+                    : 'None'
                 }
-                onValueChange={(value) => setFormData(prev => ({ ...prev, dietaryRestrictions: value }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, dietaryRestrictions: value === 'None' ? '' : value }))}
               >
                 <SelectTrigger id="dietary">
                   <SelectValue placeholder="Select dietary preference (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Preference</SelectItem>
+                  <SelectItem value="None">No Preference</SelectItem>
                   <SelectItem value="Fasting">🙏 Fasting</SelectItem>
                   <SelectItem value="Vegetarian">🥗 Vegetarian</SelectItem>
                 </SelectContent>
@@ -850,41 +855,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         </CardContent>
       </Card>
 
-      {/* Recent RSVPs */}
-      {rsvps && rsvps.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent RSVPs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {rsvps.slice(-5).reverse().map((rsvp, index) => (
-                <div key={rsvp.id || `rsvp-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{rsvp.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {rsvp.guests} guest{rsvp.guests > 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <Badge variant={rsvp.attending ? "default" : "secondary"}>
-                    {rsvp.attending ? (
-                      <>
-                        <Check size={14} className="mr-1" />
-                        Attending
-                      </>
-                    ) : (
-                      <>
-                        <X size={14} className="mr-1" />
-                        Not Attending
-                      </>
-                    )}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Recent RSVPs section removed for privacy */}
     </div>
   )
 }

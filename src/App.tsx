@@ -65,7 +65,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'htt
 
 function App() {
   const [rsvps, setRSVPs] = useState<RSVP[]>([])
-  const [isLoadingRSVPs, setIsLoadingRSVPs] = useState(true)
   const [currentTab, setCurrentTab] = useState("invitation")
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [showWelcome, setShowWelcome] = useState(true)
@@ -83,36 +82,9 @@ function App() {
     setShowWelcome(false)
   }
 
-  // Fetch RSVPs from backend
-  useEffect(() => {
-    const fetchRSVPs = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/rsvps`)
-        console.log('RSVP Response status:', response.status)
-        
-        if (response.ok) {
-          const text = await response.text()
-          console.log('RSVP Response text:', text)
-          
-          if (text) {
-            const data = JSON.parse(text)
-            setRSVPs(data)
-          } else {
-            setRSVPs([])
-          }
-        } else {
-          console.error('Response not ok:', response.status, response.statusText)
-          setRSVPs([])
-        }
-      } catch (error) {
-        console.error('Failed to fetch RSVPs:', error)
-        setRSVPs([])
-      } finally {
-        setIsLoadingRSVPs(false)
-      }
-    }
-    fetchRSVPs()
-  }, [])
+  // Removed automatic RSVP fetch - data is only loaded when:
+  // 1. Admin page loads (handled in Admin.tsx)
+  // 2. User searches for their specific RSVP (handled in RSVPForm.tsx)
 
   useEffect(() => {
     setQrCodeUrl(window.location.href)

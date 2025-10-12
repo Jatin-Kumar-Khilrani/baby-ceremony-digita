@@ -85,9 +85,33 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
 
   try {
     if (request.method === "GET") {
+      const searchEmail = request.query.get('email');
       const data = await getStorageData("rsvps.json");
       // Ensure data is always an array
       const rsvpsArray = Array.isArray(data) ? data : (data ? [data] : []);
+      
+      // If email query parameter is provided, return only that specific RSVP
+      if (searchEmail) {
+        const found = rsvpsArray.find((rsvp: any) => 
+          rsvp.email && rsvp.email.toLowerCase() === searchEmail.toLowerCase()
+        );
+        
+        if (found) {
+          return {
+            status: 200,
+            headers,
+            body: JSON.stringify(found)
+          };
+        } else {
+          return {
+            status: 404,
+            headers,
+            body: JSON.stringify({ error: "RSVP not found for this email" })
+          };
+        }
+      }
+      
+      // Otherwise return all RSVPs (for admin)
       return {
         status: 200,
         headers,

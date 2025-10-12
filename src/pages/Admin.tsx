@@ -467,14 +467,9 @@ export default function Admin() {
       const wishData = await wishResponse.json()
       const photoData = await photoResponse.json()
 
-      console.log('Photo API Response:', photoData)
-      console.log('Photo Response Status:', photoResponse.status)
-
       setRsvps(Array.isArray(rsvpData) ? rsvpData : [rsvpData].filter(Boolean))
       setWishes(Array.isArray(wishData) ? wishData : [wishData].filter(Boolean))
       setPhotos(Array.isArray(photoData) ? photoData : [photoData].filter(Boolean))
-
-      console.log('Photos state set to:', Array.isArray(photoData) ? photoData : [photoData].filter(Boolean))
 
       // Calculate stats
       const rsvpArray = Array.isArray(rsvpData) ? rsvpData : [rsvpData].filter(Boolean)
