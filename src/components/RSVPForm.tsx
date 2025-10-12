@@ -716,7 +716,18 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
               <Label>Will you be attending? *</Label>
               <RadioGroup 
                 value={formData.attending} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, attending: value }))}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    attending: value,
+                    // Clear dietary preferences and travel info if not attending
+                    dietaryRestrictions: value === 'no' ? '' : prev.dietaryRestrictions,
+                    arrivalDateTime: value === 'no' ? '' : prev.arrivalDateTime,
+                    departureDateTime: value === 'no' ? '' : prev.departureDateTime,
+                    transportNeeded: value === 'no' ? false : prev.transportNeeded,
+                    transportMode: value === 'no' ? '' : prev.transportMode
+                  }))
+                }}
                 className="flex gap-6"
               >
                 <div className="flex items-center space-x-2">
@@ -817,27 +828,30 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="dietary">Dietary Preference (Hotel Options)</Label>
-              <Select 
-                value={
-                  // Normalize legacy values to match new options
-                  formData.dietaryRestrictions === 'Fasting' || formData.dietaryRestrictions === 'Vegetarian' 
-                    ? formData.dietaryRestrictions 
-                    : 'None'
-                }
-                onValueChange={(value) => setFormData(prev => ({ ...prev, dietaryRestrictions: value === 'None' ? '' : value }))}
-              >
-                <SelectTrigger id="dietary">
-                  <SelectValue placeholder="Select dietary preference (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="None">No Preference</SelectItem>
-                  <SelectItem value="Fasting">🙏 Fasting</SelectItem>
-                  <SelectItem value="Vegetarian">🥗 Vegetarian</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Dietary Preference - Only show if attending */}
+            {formData.attending === 'yes' && (
+              <div className="space-y-2">
+                <Label htmlFor="dietary">Dietary Preference (Hotel Options)</Label>
+                <Select 
+                  value={
+                    // Normalize legacy values to match new options
+                    formData.dietaryRestrictions === 'Fasting' || formData.dietaryRestrictions === 'Vegetarian' 
+                      ? formData.dietaryRestrictions 
+                      : 'None'
+                  }
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, dietaryRestrictions: value === 'None' ? '' : value }))}
+                >
+                  <SelectTrigger id="dietary">
+                    <SelectValue placeholder="Select dietary preference (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="None">No Preference</SelectItem>
+                    <SelectItem value="Fasting">🙏 Fasting</SelectItem>
+                    <SelectItem value="Vegetarian">🥗 Vegetarian</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="message">Special Message or Wishes</Label>
