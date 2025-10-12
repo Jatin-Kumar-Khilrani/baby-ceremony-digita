@@ -10,6 +10,8 @@
     "@azure/communication-email": "^1.1.0",
     "@azure/functions": "^4.0.0",
     "@azure/storage-blob": "^12.17.0",
-    "nodemailer": "^7.0.9"
+    "@azure/openai": "^2.0.0",
+    "nodemailer": "^7.0.9",
+    "openai": "^4.67.3"
   }
 }
