@@ -24,7 +24,8 @@ import {
   ChatCircle,
   Gift,
   Star,
-  GearSix
+  GearSix,
+  Copy
 } from '@phosphor-icons/react'
 import QRCodeComponent from './components/QRCodeComponent'
 import PhotoGallery from './components/PhotoGallery'
@@ -131,20 +132,93 @@ function App() {
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
   const shareWhatsApp = () => {
-    const message = `🎉 You're invited to baby ${eventDetails.babyName}'s Welcome Ceremony! 
-    
-📅 ${eventDetails.date}
-🕕 Pooja: ${eventDetails.poojaTime}
-🍽️ Dinner: ${eventDetails.dinnerTime}
-📍 ${eventDetails.venue}, ${eventDetails.address}
+    const message = `�✨ *WELCOME CEREMONY INVITATION* ✨🎊
 
-Join our WhatsApp group for updates: ${window.location.href}
+👶💙 *Celebrating the Arrival of* 💙👶
+🌟 *Baby ${eventDetails.babyName.toUpperCase()}* 🌟
+_Our Little Bundle of Joy!_
 
-With love,
-${eventDetails.family} 💙`
+With immense joy and gratitude, we are delighted to announce the arrival of our sweet baby boy and invite you to celebrate his Welcome Ceremony.
+
+━━━━━━━━━━━━━━━━━━━
+📅 *Programme Details*
+
+�️ *Date:* ${eventDetails.date}
+
+�️ *Pooja Bahrana Sahib Path*
+     ⏰ ${eventDetails.poojaTime}
+
+🍽️ *Dinner*
+     ⏰ ${eventDetails.dinnerTime}
+
+📍 *Venue:*
+     ${eventDetails.venue}
+     ${eventDetails.address}
+━━━━━━━━━━━━━━━━━━━
+
+🌸 Join us to celebrate his arrival and shower your blessings! 🌸
+
+🎁 *RSVP & Share Your Wishes:*
+${window.location.href}
+
+✨ _Your presence will make this celebration even more special!_ ✨
+
+With Love & Regards 💕
+*${eventDetails.family}*
+
+━━━━━━━━━━━━━━━━━━━
+👶 #Baby${eventDetails.babyName} #WelcomeCeremony #Naamkaran
+━━━━━━━━━━━━━━━━━━━`
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
+  }
+
+  const copyInvitationMessage = async () => {
+    const message = `🎊✨ *WELCOME CEREMONY INVITATION* ✨🎊
+
+👶💙 *Celebrating the Arrival of* 💙👶
+🌟 *Baby ${eventDetails.babyName.toUpperCase()}* 🌟
+_Our Little Bundle of Joy!_
+
+With immense joy and gratitude, we are delighted to announce the arrival of our sweet baby boy and invite you to celebrate his Welcome Ceremony.
+
+━━━━━━━━━━━━━━━━━━━
+📅 *Programme Details*
+
+🗓️ *Date:* ${eventDetails.date}
+
+🕉️ *Pooja Bahrana Sahib Path*
+     ⏰ ${eventDetails.poojaTime}
+
+🍽️ *Dinner*
+     ⏰ ${eventDetails.dinnerTime}
+
+📍 *Venue:*
+     ${eventDetails.venue}
+     ${eventDetails.address}
+━━━━━━━━━━━━━━━━━━━
+
+🌸 Join us to celebrate his arrival and shower your blessings! 🌸
+
+🎁 *RSVP & Share Your Wishes:*
+${window.location.href}
+
+✨ _Your presence will make this celebration even more special!_ ✨
+
+With Love & Regards 💕
+*${eventDetails.family}*
+
+━━━━━━━━━━━━━━━━━━━
+👶 #Baby${eventDetails.babyName} #WelcomeCeremony #Naamkaran
+━━━━━━━━━━━━━━━━━━━`
+    
+    try {
+      await navigator.clipboard.writeText(message)
+      toast.success('✅ Invitation message copied! Paste it in WhatsApp or any app.')
+    } catch (err) {
+      toast.error('Failed to copy message')
+    }
   }
 
   const addToCalendar = () => {
@@ -309,7 +383,7 @@ ${eventDetails.family} 💙`
                 </div>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
                   <Button onClick={addToCalendar} className="bg-primary hover:bg-primary/90">
                     <Calendar size={18} className="mr-2" />
                     Add to Calendar
@@ -318,6 +392,11 @@ ${eventDetails.family} 💙`
                   <Button onClick={shareWhatsApp} className="bg-green-600 hover:bg-green-700">
                     <ChatCircle size={18} className="mr-2" />
                     Share on WhatsApp
+                  </Button>
+                  
+                  <Button onClick={copyInvitationMessage} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+                    <Copy size={18} className="mr-2" />
+                    Copy Message
                   </Button>
                   
                   <Dialog>
