@@ -131,7 +131,7 @@ function App() {
   const attendingCount = rsvps?.filter(rsvp => rsvp.attending).length || 0
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
-  const shareWhatsApp = () => {
+    const shareOnWhatsApp = () => {
     // Using simpler, universally supported emojis and proper encoding for WhatsApp
     const message = `\u{1F389} *WELCOME CEREMONY INVITATION* \u{1F389}
 
@@ -140,7 +140,7 @@ Our Little Bundle of Joy!
 
 \u{1F4C5} *Date:* ${eventDetails.date}
 
-\u{1F64F} *Pooja Bahrana Sahib Path*
+\u{1F64F} *Poojya पूज्य Bahrana Sahib Path*
 \u{23F0} Time: ${eventDetails.poojaTime}
 
 \u{1F37D}\u{FE0F} *Dinner*
@@ -171,7 +171,7 @@ Our Little Bundle of Joy!
 
 \u{1F4C5} *Date:* ${eventDetails.date}
 
-\u{1F64F} *Pooja Bahrana Sahib Path*
+\u{1F64F} *Poojya पूज्य Bahrana Sahib Path*
 \u{23F0} Time: ${eventDetails.poojaTime}
 
 \u{1F37D}\u{FE0F} *Dinner*
@@ -201,7 +201,7 @@ ${window.location.href}
     const startDate = new Date('2025-11-15T17:30:00').toISOString().replace(/[:-]/g, '').split('.')[0] + 'Z'
     const endDate = new Date('2025-11-15T22:00:00').toISOString().replace(/[:-]/g, '').split('.')[0] + 'Z'
     
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Baby ${eventDetails.babyName} Welcome Ceremony`)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(`Welcome ceremony for baby ${eventDetails.babyName}. Pooja at ${eventDetails.poojaTime}, Dinner at ${eventDetails.dinnerTime}`)}&location=${encodeURIComponent(`${eventDetails.venue}, ${eventDetails.address}`)}`
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Baby ${eventDetails.babyName} Welcome Ceremony`)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(`Welcome ceremony for baby ${eventDetails.babyName}. Poojya पूज्य at ${eventDetails.poojaTime}, Dinner at ${eventDetails.dinnerTime}`)}&location=${encodeURIComponent(`${eventDetails.venue}, ${eventDetails.address}`)}`
     
     window.open(calendarUrl, '_blank')
   }
@@ -321,7 +321,7 @@ ${window.location.href}
                     
                     <div className="flex items-center gap-3">
                       <Clock size={20} className="text-primary" />
-                      <span className="font-semibold text-destructive">Pooja Bahrana Sahib Path:</span>
+                      <span className="font-semibold text-destructive">Poojya पूज्य Bahrana Sahib Path:</span>
                       <span className="font-medium" style={{ color: 'var(--ink-blue)' }}>{eventDetails.poojaTime}</span>
                     </div>
                     
@@ -366,7 +366,7 @@ ${window.location.href}
                     Add to Calendar
                   </Button>
                   
-                  <Button onClick={shareWhatsApp} className="bg-green-600 hover:bg-green-700">
+                  <Button onClick={shareOnWhatsApp} className="bg-green-600 hover:bg-green-700">
                     <ChatCircle size={18} className="mr-2" />
                     Share on WhatsApp
                   </Button>

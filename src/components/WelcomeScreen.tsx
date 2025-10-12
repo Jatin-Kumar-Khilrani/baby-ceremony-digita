@@ -28,6 +28,13 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
             
             {/* Image Container - Cropped to show baby & moon at top */}
             <div className="relative h-[340px] md:h-[400px] overflow-hidden">
+              {/* Ganesh Ji Image - Centered at top */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 animate-in fade-in zoom-in duration-700">
+                <div className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-2xl border-2 border-orange-200">
+                  <span className="text-6xl md:text-7xl block">🕉️</span>
+                </div>
+              </div>
+              
               {/* Image with blend wrapper */}
               <div className="relative w-full h-full">
                 <img 

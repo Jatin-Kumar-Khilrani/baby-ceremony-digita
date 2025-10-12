@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -62,7 +62,7 @@ function calculateMeals(rsvps: RSVP[]) {
       if (hour < 14) {
         lunch15 += guestCount
       }
-      // Dinner 15th: arrivals before 8 PM (dinner service time)
+      // Dinner 15th: arrivals before 11:30 PM (dinner service continues till 11:30 PM, but counted if arriving before 8 PM service time)
       if (hour < 20) {
         dinner15 += guestCount
       }
@@ -109,6 +109,7 @@ interface RSVP {
   arrivalDateTime?: string
   departureDateTime?: string
   transportNeeded?: boolean
+  transportMode?: 'bus' | 'train' | 'flight' | ''
   // Admin-only fields
   roomNumber?: string
   transportDetails?: string
@@ -398,7 +399,8 @@ export default function Admin() {
   const [selectedWishes, setSelectedWishes] = useState<Set<string>>(new Set())
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
   const [rsvpSearchQuery, setRsvpSearchQuery] = useState('')
-  const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status'>('date')
+  const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status' | 'transport'>('date')
+  const rsvpSectionRef = useRef<HTMLDivElement>(null)
   const [stats, setStats] = useState({
     totalRsvps: 0,
     attending: 0,
@@ -802,6 +804,16 @@ export default function Admin() {
         case 'status':
           if (a.attending === b.attending) return 0
           return a.attending ? -1 : 1 // Attending first
+        case 'transport':
+          // Sort by transport needed, then by transport mode
+          if (a.transportNeeded === b.transportNeeded) {
+            // If both need transport, sort by mode
+            if (a.transportNeeded && a.transportMode && b.transportMode) {
+              return a.transportMode.localeCompare(b.transportMode)
+            }
+            return 0
+          }
+          return a.transportNeeded ? -1 : 1 // Transport needed first
         default:
           return 0
       }
@@ -811,6 +823,57 @@ export default function Admin() {
   }
 
   const filteredRsvps = getFilteredAndSortedRsvps()
+
+  // Handler for clicking transport stat - scroll to RSVPs and filter
+  const handleTransportClick = () => {
+    setRsvpSortBy('transport')
+    // Scroll to RSVP section
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking attending stat - scroll to RSVPs and filter
+  const handleAttendingClick = () => {
+    setRsvpSortBy('status')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking guests stat - scroll to RSVPs and filter
+  const handleGuestsClick = () => {
+    setRsvpSortBy('guests')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking total RSVPs stat - scroll to RSVPs
+  const handleTotalRsvpsClick = () => {
+    setRsvpSortBy('date')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking wishes stat - switch to wishes tab
+  const handleWishesClick = () => {
+    // Find and click the wishes tab
+    const wishesTab = document.querySelector('[value="wishes"]') as HTMLElement
+    if (wishesTab) {
+      wishesTab.click()
+    }
+  }
+
+  // Handler for clicking photos stat - switch to photos tab
+  const handlePhotosClick = () => {
+    // Find and click the photos tab
+    const photosTab = document.querySelector('[value="photos"]') as HTMLElement
+    if (photosTab) {
+      photosTab.click()
+    }
+  }
 
   if (loading) {
     return (
@@ -854,7 +917,11 @@ export default function Admin() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <Card key="stat-total-rsvps">
+          <Card 
+            key="stat-total-rsvps"
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleTotalRsvpsClick}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <Users className="w-8 h-8 mx-auto mb-2 text-purple-600 shrink-0" />
@@ -864,7 +931,11 @@ export default function Admin() {
             </CardContent>
           </Card>
 
-          <Card key="stat-attending">
+          <Card 
+            key="stat-attending"
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleAttendingClick}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600 shrink-0" />
@@ -874,7 +945,11 @@ export default function Admin() {
             </CardContent>
           </Card>
 
-          <Card key="stat-not-attending">
+          <Card 
+            key="stat-not-attending"
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleAttendingClick}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <XCircle className="w-8 h-8 mx-auto mb-2 text-red-600 shrink-0" />
@@ -884,7 +959,11 @@ export default function Admin() {
             </CardContent>
           </Card>
 
-          <Card key="stat-total-guests">
+          <Card 
+            key="stat-total-guests"
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleGuestsClick}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <Users className="w-8 h-8 mx-auto mb-2 text-blue-600 shrink-0" />
@@ -894,7 +973,11 @@ export default function Admin() {
             </CardContent>
           </Card>
 
-          <Card key="stat-wishes">
+          <Card 
+            key="stat-wishes"
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handleWishesClick}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <Heart className="w-8 h-8 mx-auto mb-2 text-pink-600 shrink-0" />
@@ -904,7 +987,11 @@ export default function Admin() {
             </CardContent>
           </Card>
 
-          <Card key="stat-photos">
+          <Card 
+            key="stat-photos"
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={handlePhotosClick}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <ImageIcon className="w-8 h-8 mx-auto mb-2 text-indigo-600 shrink-0" />
@@ -923,7 +1010,10 @@ export default function Admin() {
               Travel & Accommodation Overview
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={handleAttendingClick}
+              >
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <Bed className="w-8 h-8 mx-auto mb-2 text-orange-600 shrink-0" />
@@ -933,7 +1023,10 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={handleTransportClick}
+              >
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <Train className="w-8 h-8 mx-auto mb-2 text-cyan-600 shrink-0" />
@@ -943,7 +1036,10 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={handleAttendingClick}
+              >
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <ForkKnife className="w-8 h-8 mx-auto mb-2 text-teal-600 shrink-0" />
@@ -953,7 +1049,10 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={handleAttendingClick}
+              >
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <ForkKnife className="w-8 h-8 mx-auto mb-2 text-amber-600 shrink-0" />
@@ -987,7 +1086,7 @@ export default function Admin() {
                   <div className="text-center p-4 bg-rose-50 rounded-lg overflow-hidden">
                     <div className="text-3xl font-bold text-rose-700 break-words">{stats.dinner15}</div>
                     <div className="text-sm text-gray-600 mt-1 break-words">Dinner</div>
-                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 8 PM)</div>
+                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 8 PM, service till 11:30 PM)</div>
                   </div>
                   <div className="text-center p-4 bg-yellow-50 rounded-lg overflow-hidden">
                     <div className="text-3xl font-bold text-yellow-700 break-words">{stats.breakfast16}</div>
@@ -1009,7 +1108,7 @@ export default function Admin() {
           </TabsList>
 
           {/* RSVPs Tab */}
-          <TabsContent value="rsvps">
+          <TabsContent value="rsvps" ref={rsvpSectionRef}>
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1069,6 +1168,7 @@ export default function Admin() {
                               <SelectItem value="name">Sort by Name</SelectItem>
                               <SelectItem value="guests">Sort by Guests</SelectItem>
                               <SelectItem value="status">Sort by Status</SelectItem>
+                              <SelectItem value="transport">Sort by Transport</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
