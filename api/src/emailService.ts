@@ -48,11 +48,20 @@ async function sendPinEmailAzure(
   try {
     const connectionString = process.env.AZURE_COMMUNICATION_CONNECTION_STRING;
     if (!connectionString) {
+      console.error('AZURE_COMMUNICATION_CONNECTION_STRING is not set');
       throw new Error('Azure Communication Services connection string not configured');
     }
 
+    const senderAddress = process.env.AZURE_COMMUNICATION_SENDER_ADDRESS;
+    if (!senderAddress) {
+      console.error('AZURE_COMMUNICATION_SENDER_ADDRESS is not set');
+      throw new Error('Azure Communication Services sender address not configured');
+    }
+
+    console.log(`Attempting to send email via Azure to: ${recipientEmail}`);
+    console.log(`Sender address: ${senderAddress}`);
+
     const client = new EmailClient(connectionString);
-    const senderAddress = process.env.AZURE_COMMUNICATION_SENDER_ADDRESS || 'DoNotReply@YOUR_DOMAIN.com';
 
     const emailMessage: EmailMessage = {
       senderAddress: senderAddress,
@@ -66,13 +75,21 @@ async function sendPinEmailAzure(
       },
     };
 
+    console.log('Sending email message...');
     const poller = await client.beginSend(emailMessage);
-    await poller.pollUntilDone();
+    console.log('Email poller started, waiting for completion...');
+    const result = await poller.pollUntilDone();
     
-    console.log(`Azure Email sent successfully to ${recipientEmail}`);
+    console.log(`Azure Email sent successfully to ${recipientEmail}. Status: ${result.status}`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email via Azure:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      statusCode: error.statusCode,
+      stack: error.stack
+    });
     return false;
   }
 }

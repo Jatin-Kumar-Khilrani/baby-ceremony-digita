@@ -126,8 +126,11 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
           existingRsvp.pin = pin;
           existingRsvp.pinSentAt = new Date().toISOString();
           
+          context.log(`Found RSVP for ${searchEmail}, sending PIN...`);
+          
           // Send PIN via email
           try {
+            context.log(`Calling sendPinEmail for ${existingRsvp.email}`);
             const emailSent = await sendPinEmail(
               existingRsvp.email,
               existingRsvp.name,
@@ -135,19 +138,24 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
             );
             
             if (emailSent) {
-              context.log(`PIN email sent to ${existingRsvp.email} for RSVP search`);
+              context.log(`✅ PIN email sent successfully to ${existingRsvp.email}`);
               existingRsvp.pinEmailSent = true;
             } else {
-              context.log(`Failed to send PIN email to ${existingRsvp.email}`);
+              context.log(`❌ Failed to send PIN email to ${existingRsvp.email}`);
               existingRsvp.pinEmailSent = false;
             }
-          } catch (emailError) {
-            context.log(`Error sending PIN email to ${existingRsvp.email}: ${emailError}`);
+          } catch (emailError: any) {
+            context.log(`❌ Error sending PIN email to ${existingRsvp.email}:`, emailError);
+            context.log('Email error details:', {
+              message: emailError.message,
+              code: emailError.code,
+              stack: emailError.stack
+            });
             existingRsvp.pinEmailSent = false;
           }
           
           // Save updated data with new PIN
-          await saveStorageData("rsvps.json", existingData);
+          await saveStorageData("rsvps.json", existingRsvp);
           
           return {
             status: 200,
@@ -155,7 +163,8 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
             body: JSON.stringify({ 
               success: true, 
               found: true,
-              message: 'PIN sent to your email'
+              message: existingRsvp.pinEmailSent ? 'PIN sent to your email' : 'RSVP found but email failed to send',
+              emailSent: existingRsvp.pinEmailSent
             })
           };
         } else {
