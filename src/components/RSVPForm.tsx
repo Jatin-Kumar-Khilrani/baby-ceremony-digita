@@ -813,7 +813,12 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
             <div className="space-y-2">
               <Label htmlFor="dietary">Dietary Preference (Hotel Options)</Label>
               <Select 
-                value={formData.dietaryRestrictions || ''}
+                value={
+                  // Normalize legacy values to match new options
+                  formData.dietaryRestrictions === 'Fasting' || formData.dietaryRestrictions === 'Vegetarian' 
+                    ? formData.dietaryRestrictions 
+                    : ''
+                }
                 onValueChange={(value) => setFormData(prev => ({ ...prev, dietaryRestrictions: value }))}
               >
                 <SelectTrigger id="dietary">
