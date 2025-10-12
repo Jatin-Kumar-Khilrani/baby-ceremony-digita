@@ -24,10 +24,73 @@ import {
   Pencil,
   Trash,
   Plus,
-  SignOut
+  SignOut,
+  MapPin,
+  Clock,
+  Train,
+  Bed,
+  ForkKnife
 } from '@phosphor-icons/react'
 
 const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api'
+
+// Helper function to calculate meals based on arrival/departure times
+function calculateMeals(rsvps: RSVP[]) {
+  const attendingWithTravel = rsvps.filter(r => r.attending && (r.arrivalDateTime || r.departureDateTime))
+  
+  let breakfast15 = 0
+  let lunch15 = 0
+  let dinner15 = 0
+  let breakfast16 = 0
+  
+  attendingWithTravel.forEach(rsvp => {
+    const guestCount = rsvp.guests || 1
+    
+    // Arrival on Nov 15
+    if (rsvp.arrivalDateTime) {
+      const arrivalTime = new Date(rsvp.arrivalDateTime)
+      const hour = arrivalTime.getHours()
+      
+      // Breakfast 15th: arrivals before 10 AM (breakfast service time)
+      if (hour < 10) {
+        breakfast15 += guestCount
+      }
+      // Lunch 15th: arrivals before 2 PM (lunch service time)
+      if (hour < 14) {
+        lunch15 += guestCount
+      }
+      // Dinner 15th: arrivals before 8 PM (dinner service time)
+      if (hour < 20) {
+        dinner15 += guestCount
+      }
+    }
+    
+    // Departure on Nov 16
+    if (rsvp.departureDateTime) {
+      const departureTime = new Date(rsvp.departureDateTime)
+      const hour = departureTime.getHours()
+      
+      // Breakfast 16th: departures after 8 AM (anyone staying overnight needs breakfast)
+      if (hour >= 8) {
+        breakfast16 += guestCount
+      }
+    }
+  })
+  
+  return { breakfast15, lunch15, dinner15, breakfast16 }
+}
+
+// Helper function to format date/time
+function formatDateTime(dateTimeStr: string | undefined) {
+  if (!dateTimeStr) return 'Not provided'
+  const date = new Date(dateTimeStr)
+  return date.toLocaleString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  })
+}
 
 interface RSVP {
   id: string
@@ -39,6 +102,14 @@ interface RSVP {
   dietaryRestrictions: string
   message: string
   timestamp: number
+  // Travel & Accommodation fields
+  arrivalDateTime?: string
+  departureDateTime?: string
+  transportNeeded?: boolean
+  // Admin-only fields
+  roomNumber?: string
+  transportDetails?: string
+  adminNotes?: string
 }
 
 interface Wish {
@@ -160,6 +231,92 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
             />
           </div>
 
+          {/* Travel & Accommodation Section */}
+          {formData.attending && (
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-semibold text-lg">Travel & Accommodation</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="arrivalDateTime">Arrival Date & Time</Label>
+                  <Input
+                    id="arrivalDateTime"
+                    type="datetime-local"
+                    value={formData.arrivalDateTime || ''}
+                    onChange={(e) => setFormData({ ...formData, arrivalDateTime: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="departureDateTime">Departure Date & Time</Label>
+                  <Input
+                    id="departureDateTime"
+                    type="datetime-local"
+                    value={formData.departureDateTime || ''}
+                    onChange={(e) => setFormData({ ...formData, departureDateTime: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="transportNeeded"
+                  checked={formData.transportNeeded || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, transportNeeded: checked as boolean })}
+                />
+                <Label htmlFor="transportNeeded" className="cursor-pointer">
+                  Transportation assistance needed
+                </Label>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <h4 className="font-medium text-sm text-gray-700">Admin Only</h4>
+                
+                <div>
+                  <Label htmlFor="roomNumber">Room Assignment</Label>
+                  <Select
+                    value={formData.roomNumber || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, roomNumber: value === 'none' ? '' : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select room..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No room assigned</SelectItem>
+                      <SelectItem value="Room 1">Room 1</SelectItem>
+                      <SelectItem value="Room 2">Room 2</SelectItem>
+                      <SelectItem value="Room 3">Room 3</SelectItem>
+                      <SelectItem value="Room 4">Room 4</SelectItem>
+                      <SelectItem value="Room 5">Room 5</SelectItem>
+                      <SelectItem value="Room 6">Room 6</SelectItem>
+                      <SelectItem value="Room 7">Room 7</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="transportDetails">Transport Details</Label>
+                  <Input
+                    id="transportDetails"
+                    placeholder="e.g., Train 12345, arrives 10:30 AM"
+                    value={formData.transportDetails || ''}
+                    onChange={(e) => setFormData({ ...formData, transportDetails: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="adminNotes">Admin Notes</Label>
+                  <Textarea
+                    id="adminNotes"
+                    placeholder="Internal notes (not visible to guest)"
+                    value={formData.adminNotes || ''}
+                    onChange={(e) => setFormData({ ...formData, adminNotes: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
@@ -243,7 +400,14 @@ export default function Admin() {
     notAttending: 0,
     totalGuests: 0,
     totalWishes: 0,
-    totalPhotos: 0
+    totalPhotos: 0,
+    // Travel stats
+    needingTransport: 0,
+    roomsAllocated: 0,
+    breakfast15: 0,
+    lunch15: 0,
+    dinner15: 0,
+    breakfast16: 0
   })
 
   // Check if already authenticated on mount
@@ -309,6 +473,11 @@ export default function Admin() {
       const rsvpArray = Array.isArray(rsvpData) ? rsvpData : [rsvpData].filter(Boolean)
       const attending = rsvpArray.filter((r: RSVP) => r.attending)
       const totalGuests = attending.reduce((sum: number, r: RSVP) => sum + (r.guests || 1), 0)
+      
+      // Travel stats
+      const needingTransport = attending.filter((r: RSVP) => r.transportNeeded).length
+      const roomsAllocated = attending.filter((r: RSVP) => r.roomNumber).length
+      const meals = calculateMeals(rsvpArray)
 
       setStats({
         totalRsvps: rsvpArray.length,
@@ -316,7 +485,10 @@ export default function Admin() {
         notAttending: rsvpArray.filter((r: RSVP) => !r.attending).length,
         totalGuests,
         totalWishes: Array.isArray(wishData) ? wishData.length : (wishData ? 1 : 0),
-        totalPhotos: Array.isArray(photoData) ? photoData.length : (photoData ? 1 : 0)
+        totalPhotos: Array.isArray(photoData) ? photoData.length : (photoData ? 1 : 0),
+        needingTransport,
+        roomsAllocated,
+        ...meals
       })
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -701,6 +873,91 @@ export default function Admin() {
           </Card>
         </div>
 
+        {/* Travel & Accommodation Stats */}
+        {stats.attending > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-purple-600" />
+              Travel & Accommodation Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <Bed className="w-8 h-8 mx-auto mb-2 text-orange-600" />
+                    <div className="text-2xl font-bold">{stats.roomsAllocated} / 7</div>
+                    <div className="text-sm text-gray-600">Rooms Allocated</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <Train className="w-8 h-8 mx-auto mb-2 text-cyan-600" />
+                    <div className="text-2xl font-bold">{stats.needingTransport}</div>
+                    <div className="text-sm text-gray-600">Need Transport</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <ForkKnife className="w-8 h-8 mx-auto mb-2 text-teal-600" />
+                    <div className="text-2xl font-bold">{stats.lunch15 + stats.dinner15}</div>
+                    <div className="text-sm text-gray-600">Meals on Nov 15</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <ForkKnife className="w-8 h-8 mx-auto mb-2 text-amber-600" />
+                    <div className="text-2xl font-bold">{stats.breakfast16}</div>
+                    <div className="text-sm text-gray-600">Breakfast Nov 16</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Meal Planning Breakdown */}
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ForkKnife className="w-5 h-5" />
+                  Meal Planning (Auto-calculated from arrival/departure times)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-amber-50 rounded-lg">
+                    <div className="text-3xl font-bold text-amber-700">{stats.breakfast15}</div>
+                    <div className="text-sm text-gray-600 mt-1">Breakfast</div>
+                    <div className="text-xs text-gray-500">Nov 15 (arrivals &lt; 10 AM)</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-3xl font-bold text-orange-700">{stats.lunch15}</div>
+                    <div className="text-sm text-gray-600 mt-1">Lunch</div>
+                    <div className="text-xs text-gray-500">Nov 15 (arrivals &lt; 2 PM)</div>
+                  </div>
+                  <div className="text-center p-4 bg-rose-50 rounded-lg">
+                    <div className="text-3xl font-bold text-rose-700">{stats.dinner15}</div>
+                    <div className="text-sm text-gray-600 mt-1">Dinner</div>
+                    <div className="text-xs text-gray-500">Nov 15 (arrivals &lt; 8 PM)</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div className="text-3xl font-bold text-yellow-700">{stats.breakfast16}</div>
+                    <div className="text-sm text-gray-600 mt-1">Breakfast</div>
+                    <div className="text-xs text-gray-500">Nov 16 (departures ≥ 8 AM)</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="rsvps" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -819,6 +1076,61 @@ export default function Admin() {
                               {rsvp.dietaryRestrictions && (
                                 <div className="mt-2 text-sm">
                                   <strong>Dietary Restrictions:</strong> {rsvp.dietaryRestrictions}
+                                </div>
+                              )}
+
+                              {/* Travel & Accommodation Info */}
+                              {rsvp.attending && (rsvp.arrivalDateTime || rsvp.departureDateTime || rsvp.transportNeeded || rsvp.roomNumber) && (
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <MapPin className="w-4 h-4 text-blue-600" />
+                                    <strong className="text-sm text-blue-900">Travel & Accommodation</strong>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    {rsvp.arrivalDateTime && (
+                                      <div>
+                                        <Clock className="w-3 h-3 inline mr-1 text-gray-500" />
+                                        <span className="text-gray-600">Arrival:</span>
+                                        <div className="font-medium text-gray-900">{formatDateTime(rsvp.arrivalDateTime)}</div>
+                                      </div>
+                                    )}
+                                    {rsvp.departureDateTime && (
+                                      <div>
+                                        <Clock className="w-3 h-3 inline mr-1 text-gray-500" />
+                                        <span className="text-gray-600">Departure:</span>
+                                        <div className="font-medium text-gray-900">{formatDateTime(rsvp.departureDateTime)}</div>
+                                      </div>
+                                    )}
+                                    {rsvp.transportNeeded && (
+                                      <div className="col-span-2">
+                                        <Badge className="bg-cyan-100 text-cyan-800">
+                                          <Train className="w-3 h-3 mr-1" />
+                                          Needs Transportation
+                                        </Badge>
+                                      </div>
+                                    )}
+                                    {rsvp.roomNumber && (
+                                      <div className="col-span-2">
+                                        <Badge className="bg-orange-100 text-orange-800">
+                                          <Bed className="w-3 h-3 mr-1" />
+                                          {rsvp.roomNumber}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                    {rsvp.transportDetails && (
+                                      <div className="col-span-2">
+                                        <span className="text-gray-600">Transport Details:</span>
+                                        <div className="font-medium text-gray-900">{rsvp.transportDetails}</div>
+                                      </div>
+                                    )}
+                                    {rsvp.adminNotes && (
+                                      <div className="col-span-2 pt-2 border-t border-blue-200">
+                                        <span className="text-gray-600">Admin Notes:</span>
+                                        <div className="text-gray-700 italic text-xs mt-1">{rsvp.adminNotes}</div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               )}
 

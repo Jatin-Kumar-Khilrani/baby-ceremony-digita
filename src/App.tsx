@@ -43,6 +43,14 @@ interface RSVP {
   dietaryRestrictions: string
   message: string
   timestamp: number
+  // Travel & Accommodation
+  arrivalDateTime?: string
+  departureDateTime?: string
+  transportNeeded?: boolean
+  // Admin-only fields
+  roomNumber?: string
+  transportDetails?: string
+  adminNotes?: string
 }
 
 interface Wish {
@@ -52,7 +60,7 @@ interface Wish {
   timestamp: number
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7071'
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:7071/api' : '/api')
 
 function App() {
   const [rsvps, setRSVPs] = useState<RSVP[]>([])
@@ -156,8 +164,22 @@ ${eventDetails.family} 💙`
         <div className="min-h-screen bg-background baby-pattern">
           <TourGuide />
           <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Admin Link */}
-        <div className="flex justify-end mb-4">
+        {/* Admin Link & Reset Welcome */}
+        <div className="flex justify-end gap-2 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              localStorage.removeItem('baby-ceremony-welcome-seen')
+              localStorage.removeItem('baby-ceremony-tour-completed')
+              window.location.reload()
+            }}
+            className="text-muted-foreground hover:text-primary"
+            title="Reset Welcome Screen"
+          >
+            <Star size={16} className="mr-1" />
+            Reset
+          </Button>
           <Link to="/admin">
             <Button variant="outline" size="sm" className="gap-2">
               <GearSix size={16} />
@@ -259,13 +281,10 @@ ${eventDetails.family} 💙`
                       <span className="text-primary font-medium">{eventDetails.dinnerTime}</span>
                     </div>
                     
-                    <div className="flex items-start gap-3">
-                      <MapPin size={20} className="text-primary mt-1" />
-                      <div>
-                        <span className="font-semibold text-destructive block">Venue:</span>
-                        <span className="text-primary font-medium block">{eventDetails.venue}</span>
-                        <span className="text-accent text-sm">{eventDetails.address}</span>
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <MapPin size={20} className="text-primary" />
+                      <span className="font-semibold text-destructive">Venue:</span>
+                      <span className="text-primary font-medium">{eventDetails.venue}, {eventDetails.address}</span>
                     </div>
                     
                     <div className="flex items-center gap-3 pt-2 border-t border-accent/20">
@@ -321,15 +340,21 @@ ${eventDetails.family} 💙`
                 {rsvps && rsvps.length > 0 && (
                   <Card className="bg-accent/10 border-accent/30">
                     <CardContent className="p-4 sm:p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
-                        <Badge variant="secondary" className="text-sm md:text-base lg:text-lg py-2 px-3 flex items-center justify-center">
-                          <Users className="w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" />
-                          <span className="truncate">{attendingCount} Families</span>
-                        </Badge>
-                        <Badge variant="outline" className="text-sm md:text-base lg:text-lg py-2 px-3 flex items-center justify-center">
-                          <Heart className="w-4 h-4 md:w-5 md:h-5 mr-2 flex-shrink-0" />
-                          <span className="truncate">{totalGuests} Guests</span>
-                        </Badge>
+                      <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto">
+                        <div className="flex items-center justify-center gap-2 px-3 md:px-4 py-3 md:py-4 bg-rose-50 border-2 border-rose-200 rounded-xl transition-all hover:shadow-md">
+                          <Users className="w-4 h-4 md:w-5 md:h-5 text-rose-600 flex-shrink-0" weight="fill" />
+                          <div className="flex flex-col items-center">
+                            <span className="text-lg md:text-2xl font-bold text-rose-700">{attendingCount}</span>
+                            <span className="text-xs md:text-sm text-rose-600 font-medium">Families</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 px-3 md:px-4 py-3 md:py-4 bg-blue-50 border-2 border-blue-200 rounded-xl transition-all hover:shadow-md">
+                          <Heart className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" weight="fill" />
+                          <div className="flex flex-col items-center">
+                            <span className="text-lg md:text-2xl font-bold text-blue-700">{totalGuests}</span>
+                            <span className="text-xs md:text-sm text-blue-600 font-medium">Guests</span>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
