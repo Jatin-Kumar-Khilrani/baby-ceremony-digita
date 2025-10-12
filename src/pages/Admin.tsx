@@ -399,7 +399,7 @@ export default function Admin() {
   const [selectedWishes, setSelectedWishes] = useState<Set<string>>(new Set())
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
   const [rsvpSearchQuery, setRsvpSearchQuery] = useState('')
-  const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status' | 'transport'>('date')
+  const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status' | 'transport' | 'rooms' | 'meals'>('date')
   const rsvpSectionRef = useRef<HTMLDivElement>(null)
   const [stats, setStats] = useState({
     totalRsvps: 0,
@@ -814,6 +814,28 @@ export default function Admin() {
             return 0
           }
           return a.transportNeeded ? -1 : 1 // Transport needed first
+        case 'rooms':
+          // Sort by room allocated (those with rooms first)
+          if ((a.roomNumber ? 1 : 0) === (b.roomNumber ? 1 : 0)) {
+            // If both have or don't have rooms, sort by room number
+            if (a.roomNumber && b.roomNumber) {
+              return a.roomNumber.localeCompare(b.roomNumber)
+            }
+            return 0
+          }
+          return a.roomNumber ? -1 : 1 // With rooms first
+        case 'meals':
+          // Sort by meals needed (arrival/departure times indicating meal requirements)
+          const aHasMeals = (a.arrivalDateTime || a.departureDateTime) ? 1 : 0
+          const bHasMeals = (b.arrivalDateTime || b.departureDateTime) ? 1 : 0
+          if (aHasMeals === bHasMeals) {
+            // Secondary sort by arrival time if both have meals
+            if (a.arrivalDateTime && b.arrivalDateTime) {
+              return new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
+            }
+            return 0
+          }
+          return bHasMeals - aHasMeals // With meals first
         default:
           return 0
       }
@@ -873,6 +895,22 @@ export default function Admin() {
     if (photosTab) {
       photosTab.click()
     }
+  }
+
+  // Handler for clicking rooms stat - scroll to RSVPs and filter by rooms
+  const handleRoomsClick = () => {
+    setRsvpSortBy('rooms')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking meals stat - scroll to RSVPs and filter by meals
+  const handleMealsClick = () => {
+    setRsvpSortBy('meals')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
   }
 
   if (loading) {
@@ -1012,7 +1050,7 @@ export default function Admin() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={handleAttendingClick}
+                onClick={handleRoomsClick}
               >
                 <CardContent className="pt-6">
                   <div className="text-center">
@@ -1038,7 +1076,7 @@ export default function Admin() {
 
               <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={handleAttendingClick}
+                onClick={handleMealsClick}
               >
                 <CardContent className="pt-6">
                   <div className="text-center">
@@ -1051,7 +1089,7 @@ export default function Admin() {
 
               <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={handleAttendingClick}
+                onClick={handleMealsClick}
               >
                 <CardContent className="pt-6">
                   <div className="text-center">
@@ -1169,6 +1207,8 @@ export default function Admin() {
                               <SelectItem value="guests">Sort by Guests</SelectItem>
                               <SelectItem value="status">Sort by Status</SelectItem>
                               <SelectItem value="transport">Sort by Transport</SelectItem>
+                              <SelectItem value="rooms">Sort by Rooms</SelectItem>
+                              <SelectItem value="meals">Sort by Meals</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
