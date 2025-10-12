@@ -132,29 +132,29 @@ function App() {
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
   const shareWhatsApp = () => {
-    const message = `*WELCOME CEREMONY INVITATION*
+    const message = `🎉 *WELCOME CEREMONY INVITATION* 🎉
 
-*Celebrating Baby ${eventDetails.babyName.toUpperCase()}*
+👶 *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* 💙
 Our Little Bundle of Joy!
 
-*Date:* ${eventDetails.date}
+📅 *Date:* ${eventDetails.date}
 
-*Pooja Bahrana Sahib Path*
-Time: ${eventDetails.poojaTime}
+🙏 *Pooja Bahrana Sahib Path*
+⏰ Time: ${eventDetails.poojaTime}
 
-*Dinner*
-Time: ${eventDetails.dinnerTime}
+🍽 *Dinner*
+⏰ Time: ${eventDetails.dinnerTime}
 
-*Venue:*
+📍 *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-Join us to celebrate and bless baby ${eventDetails.babyName}!
+✨ Join us to celebrate and bless baby ${eventDetails.babyName}! ✨
 
-*RSVP & Share Wishes:*
+🔗 *RSVP & Share Wishes:*
 ${window.location.href}
 
-With Love,
+💕 With Love,
 *${eventDetails.family}*`
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
@@ -162,29 +162,29 @@ With Love,
   }
 
   const copyInvitationMessage = async () => {
-    const message = `*WELCOME CEREMONY INVITATION*
+    const message = `🎉 *WELCOME CEREMONY INVITATION* 🎉
 
-*Celebrating Baby ${eventDetails.babyName.toUpperCase()}*
+👶 *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* 💙
 Our Little Bundle of Joy!
 
-*Date:* ${eventDetails.date}
+📅 *Date:* ${eventDetails.date}
 
-*Pooja Bahrana Sahib Path*
-Time: ${eventDetails.poojaTime}
+🙏 *Pooja Bahrana Sahib Path*
+⏰ Time: ${eventDetails.poojaTime}
 
-*Dinner*
-Time: ${eventDetails.dinnerTime}
+🍽 *Dinner*
+⏰ Time: ${eventDetails.dinnerTime}
 
-*Venue:*
+📍 *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-Join us to celebrate and bless baby ${eventDetails.babyName}!
+✨ Join us to celebrate and bless baby ${eventDetails.babyName}! ✨
 
-*RSVP & Share Wishes:*
+🔗 *RSVP & Share Wishes:*
 ${window.location.href}
 
-With Love,
+💕 With Love,
 *${eventDetails.family}*`
     
     try {
