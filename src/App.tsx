@@ -392,29 +392,7 @@ ${window.location.href}
                   </Dialog>
                 </div>
 
-                {/* RSVP Status */}
-                {rsvps && rsvps.length > 0 && (
-                  <Card className="bg-accent/10 border-accent/30">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto">
-                        <div className="flex items-center justify-center gap-2 px-3 md:px-4 py-3 md:py-4 bg-rose-50 border-2 border-rose-200 rounded-xl transition-all hover:shadow-md">
-                          <Users className="w-4 h-4 md:w-5 md:h-5 text-rose-600 flex-shrink-0" weight="fill" />
-                          <div className="flex flex-col items-center">
-                            <span className="text-lg md:text-2xl font-bold text-rose-700">{attendingCount}</span>
-                            <span className="text-xs md:text-sm text-rose-600 font-medium">Families</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 px-3 md:px-4 py-3 md:py-4 bg-blue-50 border-2 border-blue-200 rounded-xl transition-all hover:shadow-md">
-                          <Heart className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" weight="fill" />
-                          <div className="flex flex-col items-center">
-                            <span className="text-lg md:text-2xl font-bold text-blue-700">{totalGuests}</span>
-                            <span className="text-xs md:text-sm text-blue-600 font-medium">Guests</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* RSVP Status - Removed to keep attendance private */}
               </CardContent>
             </Card>
           </TabsContent>
