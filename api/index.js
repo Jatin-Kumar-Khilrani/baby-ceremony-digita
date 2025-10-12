@@ -5,4 +5,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("./rsvps");
 require("./photos");
 require("./wishes");
+require("./enhance-wish");
 //# sourceMappingURL=index.js.map
