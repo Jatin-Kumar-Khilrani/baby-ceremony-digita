@@ -28,11 +28,11 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
             
             {/* Ganesh Ji Image - At the very top, separate from moon image */}
             <div className="relative pt-6 pb-4 flex justify-center z-30">
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl p-4 shadow-2xl border-2 border-orange-300/50 animate-in fade-in zoom-in duration-700">
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-3 shadow-2xl border-2 border-orange-400/60 animate-in fade-in zoom-in duration-700">
                 <img 
                   src="/ganesh.png" 
                   alt="Ganesh Ji"
-                  className="w-20 h-20 md:w-24 md:h-24 object-contain"
+                  className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-lg"
                 />
               </div>
             </div>
