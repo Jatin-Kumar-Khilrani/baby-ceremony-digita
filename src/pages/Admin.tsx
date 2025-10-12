@@ -1058,14 +1058,14 @@ export default function Admin() {
                                 </div>
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                                <div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 text-sm">
+                                <div className="break-words">
                                   <EnvelopeSimple className="w-4 h-4 inline mr-1 text-gray-400" />
-                                  <a href={`mailto:${rsvp.email}`} className="text-blue-600 hover:underline">
+                                  <a href={`mailto:${rsvp.email}`} className="text-blue-600 hover:underline break-all">
                                     {rsvp.email}
                                   </a>
                                 </div>
-                                <div>
+                                <div className="break-words">
                                   <PhoneIcon className="w-4 h-4 inline mr-1 text-gray-400" />
                                   <a href={`tel:${rsvp.phone}`} className="text-blue-600 hover:underline">
                                     {rsvp.phone}
@@ -1087,16 +1087,16 @@ export default function Admin() {
                                     <strong className="text-sm text-blue-900">Travel & Accommodation</strong>
                                   </div>
                                   
-                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                     {rsvp.arrivalDateTime && (
-                                      <div>
+                                      <div className="break-words">
                                         <Clock className="w-3 h-3 inline mr-1 text-gray-500" />
                                         <span className="text-gray-600">Arrival:</span>
                                         <div className="font-medium text-gray-900">{formatDateTime(rsvp.arrivalDateTime)}</div>
                                       </div>
                                     )}
                                     {rsvp.departureDateTime && (
-                                      <div>
+                                      <div className="break-words">
                                         <Clock className="w-3 h-3 inline mr-1 text-gray-500" />
                                         <span className="text-gray-600">Departure:</span>
                                         <div className="font-medium text-gray-900">{formatDateTime(rsvp.departureDateTime)}</div>

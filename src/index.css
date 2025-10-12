@@ -9,26 +9,31 @@
 
 :root {
   --background: oklch(0.98 0.01 45);
-  --foreground: oklch(0.15 0.02 220);
+  --foreground: oklch(0.25 0.03 280); /* Dark blue-gray instead of black */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 220);
+  --card-foreground: oklch(0.25 0.03 280); /* Dark blue-gray instead of black */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 220);
+  --popover-foreground: oklch(0.25 0.03 280);
 
-  --primary: oklch(0.75 0.08 220);
+  --primary: oklch(0.45 0.15 15); /* Maroon/Deep Red for Parv and primary elements */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.82 0.06 45);
-  --secondary-foreground: oklch(0.25 0.08 220);
-  --accent: oklch(0.85 0.12 85);
-  --accent-foreground: oklch(0.25 0.08 220);
-  --destructive: oklch(0.577 0.245 27.325);
+  --secondary-foreground: oklch(0.30 0.05 280);
+  --accent: oklch(0.65 0.18 25); /* Rich Red-Orange for accents */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.50 0.20 20); /* Deep Red for "Programme" labels */
   --destructive-foreground: oklch(1 0 0);
 
   --muted: oklch(0.95 0.02 85);
-  --muted-foreground: oklch(0.45 0.02 220);
+  --muted-foreground: oklch(0.40 0.03 280); /* Dark gray-blue for muted text */
   --border: oklch(0.90 0.02 85);
   --input: oklch(0.90 0.02 85);
-  --ring: oklch(0.75 0.08 220);
+  --ring: oklch(0.45 0.15 15);
+
+  /* Custom colors */
+  --ink-blue: oklch(0.35 0.12 250); /* Ink Blue for date, time, venue, phone */
+  --warm-brown: oklch(0.40 0.08 60); /* Warm brown for descriptive text */
+  --teal-accent: oklch(0.50 0.10 200); /* Teal for subtitle */
 
   --radius: 1rem;
 }

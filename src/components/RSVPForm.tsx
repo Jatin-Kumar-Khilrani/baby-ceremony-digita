@@ -394,6 +394,18 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
           { duration: 5000 }
         )
         
+        // Auto-join WhatsApp group if attending
+        if (formData.attending === 'yes' && formData.phone) {
+          // Show joining message
+          toast.info('Joining WhatsApp group "Welcome Parv"...', { duration: 3000 })
+          
+          // Open WhatsApp group invite link
+          setTimeout(() => {
+            const whatsappGroupUrl = 'https://chat.whatsapp.com/BQfC4vHsXcK3E1yBd58l5H'
+            window.open(whatsappGroupUrl, '_blank')
+          }, 1500)
+        }
+        
         // PIN will be sent only when user searches to edit/delete
         toast.info(
           '✅ RSVP submitted! To edit/delete later, search for your RSVP below and we\'ll send you a PIN.',

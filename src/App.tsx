@@ -280,14 +280,14 @@ ${window.location.href}
                   Welcome Ceremony
                 </h1>
                 <p className="text-xl text-destructive font-semibold tracking-wide">INVITATION</p>
-                <p className="text-lg text-muted-foreground italic mt-2">
+                <p className="text-lg italic mt-2 font-medium" style={{ color: 'var(--teal-accent)' }}>
                   Celebrating the Arrival of our little bundle of joy
                 </p>
               </CardHeader>
 
               <CardContent className="text-center space-y-6">
                 <div className="bg-muted/50 rounded-lg p-6">
-                  <p className="text-lg mb-4 leading-relaxed">
+                  <p className="text-lg mb-4 leading-relaxed" style={{ color: 'var(--warm-brown)' }}>
                     With immense joy and gratitude,<br />
                     We are delighted to announce the<br />
                     arrival of our sweet baby boy -
@@ -297,7 +297,7 @@ ${window.location.href}
                     {eventDetails.babyName}
                   </div>
                   
-                  <p className="text-lg font-medium">
+                  <p className="text-lg font-medium" style={{ color: 'var(--warm-brown)' }}>
                     Join us to celebrate his arrival and<br />
                     shower your blessings
                   </p>
@@ -314,25 +314,25 @@ ${window.location.href}
                     <div className="flex items-center gap-3">
                       <Calendar size={20} className="text-primary" />
                       <span className="font-semibold text-destructive">Date:</span>
-                      <span className="text-primary font-medium">{eventDetails.date}</span>
+                      <span className="font-medium" style={{ color: 'var(--ink-blue)' }}>{eventDetails.date}</span>
                     </div>
                     
                     <div className="flex items-center gap-3">
                       <Clock size={20} className="text-primary" />
                       <span className="font-semibold text-destructive">Pooja Bahrana Sahib Path:</span>
-                      <span className="text-primary font-medium">{eventDetails.poojaTime}</span>
+                      <span className="font-medium" style={{ color: 'var(--ink-blue)' }}>{eventDetails.poojaTime}</span>
                     </div>
                     
                     <div className="flex items-center gap-3">
                       <Clock size={20} className="text-primary" />
                       <span className="font-semibold text-destructive">Dinner:</span>
-                      <span className="text-primary font-medium">{eventDetails.dinnerTime}</span>
+                      <span className="font-medium" style={{ color: 'var(--ink-blue)' }}>{eventDetails.dinnerTime}</span>
                     </div>
                     
                     <div className="flex items-center gap-3">
                       <MapPin size={20} className="text-primary" />
                       <span className="font-semibold text-destructive">Venue:</span>
-                      <span className="text-primary font-medium">{eventDetails.venue}, {eventDetails.address}</span>
+                      <span className="font-medium" style={{ color: 'var(--ink-blue)' }}>{eventDetails.venue}, {eventDetails.address}</span>
                     </div>
                     
                     <div className="flex items-center gap-3 pt-2 border-t border-accent/20">
@@ -341,7 +341,8 @@ ${window.location.href}
                         <span className="font-semibold text-destructive">Contact:</span>
                         <a 
                           href="tel:+919772854400" 
-                          className="text-primary font-medium ml-2 hover:underline"
+                          className="font-medium ml-2 hover:underline"
+                          style={{ color: 'var(--ink-blue)' }}
                         >
                           +91-9772854400
                         </a>
