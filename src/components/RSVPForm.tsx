@@ -34,6 +34,14 @@ interface RSVP {
   pin?: string // 4-digit PIN for authentication
   pinEmailSent?: boolean
   pinSentAt?: string
+  // Travel & Accommodation (for admin planning)
+  arrivalDateTime?: string
+  departureDateTime?: string
+  transportNeeded?: boolean
+  // Admin-only fields (not shown to guests)
+  roomNumber?: string // Room 1-7
+  transportDetails?: string
+  adminNotes?: string
 }
 
 interface RSVPFormProps {
@@ -49,7 +57,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     attending: '',
     guests: '1',
     dietaryRestrictions: '',
-    message: ''
+    message: '',
+    arrivalDateTime: '',
+    departureDateTime: '',
+    transportNeeded: false
   })
   const [searchEmail, setSearchEmail] = useState('')
   const [verifyPin, setVerifyPin] = useState('')
@@ -204,7 +215,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       attending: rsvp.attending ? 'yes' : 'no',
       guests: rsvp.guests.toString(),
       dietaryRestrictions: rsvp.dietaryRestrictions,
-      message: rsvp.message
+      message: rsvp.message,
+      arrivalDateTime: rsvp.arrivalDateTime || '',
+      departureDateTime: rsvp.departureDateTime || '',
+      transportNeeded: rsvp.transportNeeded || false
     })
     setFoundRsvp(null)
     setSearchEmail('')
@@ -258,7 +272,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       attending: '',
       guests: '1',
       dietaryRestrictions: '',
-      message: ''
+      message: '',
+      arrivalDateTime: '',
+      departureDateTime: '',
+      transportNeeded: false
     })
   }
 
@@ -280,7 +297,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         attending: formData.attending === 'yes',
         guests: parseInt(formData.guests),
         dietaryRestrictions: formData.dietaryRestrictions,
-        message: formData.message
+        message: formData.message,
+        arrivalDateTime: formData.arrivalDateTime || undefined,
+        departureDateTime: formData.departureDateTime || undefined,
+        transportNeeded: formData.transportNeeded
       }
 
       // Save to backend
@@ -304,14 +324,36 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         return
       }
     } else {
-      // Check if already RSVP'd
-      const existing = rsvps?.find(rsvp => 
-        (rsvp.email && formData.email && rsvp.email.toLowerCase() === formData.email.toLowerCase()) ||
-        (rsvp.phone && formData.phone && rsvp.phone === formData.phone)
-      )
+      // Check if already RSVP'd - check by email, phone, or family name
+      const existing = rsvps?.find(rsvp => {
+        // Check email match (case insensitive)
+        if (rsvp.email && formData.email && 
+            rsvp.email.toLowerCase() === formData.email.toLowerCase()) {
+          return true
+        }
+        
+        // Check phone match
+        if (rsvp.phone && formData.phone && rsvp.phone === formData.phone) {
+          return true
+        }
+        
+        // Check family name match (case insensitive)
+        // Extract family name (last word in name)
+        const existingFamily = rsvp.name.trim().split(/\s+/).pop()?.toLowerCase()
+        const newFamily = formData.name.trim().split(/\s+/).pop()?.toLowerCase()
+        
+        if (existingFamily && newFamily && existingFamily === newFamily) {
+          return true
+        }
+        
+        return false
+      })
       
       if (existing) {
-        toast.error('You have already submitted an RSVP. Search for it below to edit.')
+        toast.error(
+          `This family has already submitted an RSVP. Search for "${existing.name}" below to edit it.`,
+          { duration: 6000 }
+        )
         return
       }
 
@@ -325,7 +367,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         guests: parseInt(formData.guests),
         dietaryRestrictions: formData.dietaryRestrictions,
         message: formData.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        arrivalDateTime: formData.arrivalDateTime || undefined,
+        departureDateTime: formData.departureDateTime || undefined,
+        transportNeeded: formData.transportNeeded
       }
 
       // Save to backend
@@ -368,7 +413,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       attending: '',
       guests: '1',
       dietaryRestrictions: '',
-      message: ''
+      message: '',
+      arrivalDateTime: '',
+      departureDateTime: '',
+      transportNeeded: false
     })
   }
 
@@ -591,58 +639,64 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter your full name"
-                  required
-                />
+            <div className="space-y-4">
+              {/* Name and Email - Full width on mobile, side-by-side on desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="your.email@example.com"
+                    required
+                  />
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="your.email@example.com"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+91 98765 43210"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="guests">Number of Guests</Label>
-                <Select 
-                  value={formData.guests} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, guests: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select number of guests" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                      <SelectItem key={num} value={num.toString()}>
-                        {num} {num === 1 ? 'Guest' : 'Guests'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Phone and Guests - Full width on mobile, side-by-side on desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="guests">Number of Guests</Label>
+                  <Select 
+                    value={formData.guests} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, guests: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select number of guests" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num} {num === 1 ? 'Guest' : 'Guests'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -669,6 +723,65 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
                 </div>
               </RadioGroup>
             </div>
+
+            {/* Travel Information - Only show if attending */}
+            {formData.attending === 'yes' && (
+              <div className="space-y-4 p-4 bg-blue-50/50 border border-blue-200/50 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <div className="text-blue-600 mt-1">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 mb-1">Help Us Plan Your Stay</h4>
+                    <p className="text-sm text-blue-800">
+                      Share your travel details so we can arrange transportation and coordinate meals.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Arrival and Departure Times */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="arrival">Arrival Date & Time</Label>
+                    <Input
+                      id="arrival"
+                      type="datetime-local"
+                      value={formData.arrivalDateTime}
+                      onChange={(e) => setFormData(prev => ({ ...prev, arrivalDateTime: e.target.value }))}
+                      placeholder="When will you arrive?"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="departure">Departure Date & Time</Label>
+                    <Input
+                      id="departure"
+                      type="datetime-local"
+                      value={formData.departureDateTime}
+                      onChange={(e) => setFormData(prev => ({ ...prev, departureDateTime: e.target.value }))}
+                      placeholder="When will you depart?"
+                    />
+                  </div>
+                </div>
+
+                {/* Transportation */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="transport"
+                    checked={formData.transportNeeded}
+                    onChange={(e) => setFormData(prev => ({ ...prev, transportNeeded: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    aria-label="Transportation needed"
+                  />
+                  <Label htmlFor="transport" className="cursor-pointer text-sm">
+                    I need transportation assistance from railway station/airport
+                  </Label>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="dietary">Dietary Restrictions</Label>

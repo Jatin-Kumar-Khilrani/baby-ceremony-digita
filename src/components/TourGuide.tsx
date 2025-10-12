@@ -86,18 +86,52 @@ export default function TourGuide() {
 
   const getPosition = () => {
     const offset = 10
+    const cardHeight = 200 // Approximate height of tour card
+    const cardWidth = 300
+    
+    let top = 0
+    let left = 0
+    
     switch (step.placement) {
       case 'bottom':
-        return { top: rect.bottom + offset, left: rect.left + rect.width / 2 - 150 }
+        top = rect.bottom + offset
+        left = rect.left + rect.width / 2 - 150
+        break
       case 'top':
-        return { top: rect.top - 200 - offset, left: rect.left + rect.width / 2 - 150 }
+        top = rect.top - cardHeight - offset
+        left = rect.left + rect.width / 2 - 150
+        break
       case 'left':
-        return { top: rect.top, left: rect.left - 310 }
+        top = rect.top
+        left = rect.left - cardWidth - offset
+        break
       case 'right':
-        return { top: rect.top, left: rect.right + offset }
+        top = rect.top
+        left = rect.right + offset
+        break
       default:
-        return { top: rect.bottom + offset, left: rect.left }
+        top = rect.bottom + offset
+        left = rect.left
     }
+    
+    // Ensure card stays within viewport bounds
+    // Top boundary - minimum 10px from top
+    top = Math.max(10, top)
+    
+    // Bottom boundary - ensure card doesn't go below viewport
+    if (top + cardHeight > window.innerHeight - 10) {
+      top = window.innerHeight - cardHeight - 10
+    }
+    
+    // Left boundary - minimum 10px from left
+    left = Math.max(10, left)
+    
+    // Right boundary - ensure card doesn't go beyond viewport
+    if (left + cardWidth > window.innerWidth - 10) {
+      left = window.innerWidth - cardWidth - 10
+    }
+    
+    return { top, left }
   }
 
   const position = getPosition()
@@ -127,7 +161,7 @@ export default function TourGuide() {
         className="fixed z-[102] w-[300px] shadow-2xl animate-in fade-in slide-in-from-bottom-4"
         style={{
           top: `${position.top}px`,
-          left: `${Math.max(10, Math.min(position.left, window.innerWidth - 310))}px`
+          left: `${position.left}px`
         }}
       >
         <CardContent className="p-4 space-y-4">

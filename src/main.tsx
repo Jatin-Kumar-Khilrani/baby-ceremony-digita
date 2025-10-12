@@ -8,7 +8,6 @@ import Admin from './pages/Admin.tsx'
 import { ErrorFallback } from './ErrorFallback.tsx'
 
 import "./main.css"
-import "./styles/theme.css"
 import "./index.css"
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '421168352211-675f1r834eoa5ktm6r9suf0qa40lf4he.apps.googleusercontent.com'
