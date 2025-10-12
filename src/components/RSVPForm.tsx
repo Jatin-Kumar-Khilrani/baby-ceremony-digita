@@ -166,10 +166,44 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       if (response.ok) {
         const found = await response.json()
         
+        // DEBUG: Log what we received from API
+        console.log('=== SEARCH RESPONSE DEBUG ===');
+        console.log('Email searched:', searchEmail);
+        console.log('Response status:', response.status);
+        console.log('Response data:', found);
+        console.log('Is array?', Array.isArray(found));
+        console.log('Data type:', typeof found);
+        
         // CRITICAL: Check if API returned an array (all RSVPs) vs object (single RSVP)
         // Production API bug workaround: if array is returned, email wasn't found
         if (Array.isArray(found)) {
-          // API returned all RSVPs, not a specific one = NOT FOUND
+          console.log('❌ Array returned - checking if email exists in array');
+          // Search within the array for the email
+          const rsvpInArray = found.find((rsvp: any) => 
+            rsvp.email && rsvp.email.toLowerCase() === searchEmail.toLowerCase()
+          );
+          
+          if (rsvpInArray) {
+            console.log('✅ Found RSVP in array:', rsvpInArray);
+            // Normalize dietary restrictions for legacy data
+            const normalizedRsvp = {
+              ...rsvpInArray,
+              dietaryRestrictions: (rsvpInArray.dietaryRestrictions === 'Fasting' || rsvpInArray.dietaryRestrictions === 'Vegetarian') 
+                ? rsvpInArray.dietaryRestrictions 
+                : ''
+            }
+            setFoundRsvp(normalizedRsvp)
+            setGoogleUser(null)
+            setIsPinVerified(false)
+            setVerifyPin('')
+            setShowPinOption(false)
+            toast.success('✅ RSVP found! Please verify using Google Sign-In or request a PIN.')
+            setIsSearching(false)
+            return
+          }
+          
+          console.log('❌ Email not found in array');
+          // API returned all RSVPs, but email not in the list = NOT FOUND
           setFoundRsvp(null)
           setFormData(prev => ({ ...prev, email: searchEmail }))
           toast.message('No RSVP Found', {
@@ -180,6 +214,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
           return
         }
         
+        console.log('✅ Single object returned - RSVP found');
         // Normalize dietary restrictions for legacy data
         const normalizedRsvp = {
           ...found,
