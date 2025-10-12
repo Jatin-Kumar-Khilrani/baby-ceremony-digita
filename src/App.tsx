@@ -132,90 +132,64 @@ function App() {
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
   const shareWhatsApp = () => {
-    const message = `�✨ *WELCOME CEREMONY INVITATION* ✨🎊
+    const message = `*WELCOME CEREMONY INVITATION*
 
-👶💙 *Celebrating the Arrival of* 💙👶
-🌟 *Baby ${eventDetails.babyName.toUpperCase()}* 🌟
-_Our Little Bundle of Joy!_
+*Celebrating Baby ${eventDetails.babyName.toUpperCase()}*
+Our Little Bundle of Joy!
 
-With immense joy and gratitude, we are delighted to announce the arrival of our sweet baby boy and invite you to celebrate his Welcome Ceremony.
+*Date:* ${eventDetails.date}
 
-━━━━━━━━━━━━━━━━━━━
-📅 *Programme Details*
+*Pooja Bahrana Sahib Path*
+Time: ${eventDetails.poojaTime}
 
-�️ *Date:* ${eventDetails.date}
+*Dinner*
+Time: ${eventDetails.dinnerTime}
 
-�️ *Pooja Bahrana Sahib Path*
-     ⏰ ${eventDetails.poojaTime}
+*Venue:*
+${eventDetails.venue}
+${eventDetails.address}
 
-🍽️ *Dinner*
-     ⏰ ${eventDetails.dinnerTime}
+Join us to celebrate and bless baby ${eventDetails.babyName}!
 
-📍 *Venue:*
-     ${eventDetails.venue}
-     ${eventDetails.address}
-━━━━━━━━━━━━━━━━━━━
-
-🌸 Join us to celebrate his arrival and shower your blessings! 🌸
-
-🎁 *RSVP & Share Your Wishes:*
+*RSVP & Share Wishes:*
 ${window.location.href}
 
-✨ _Your presence will make this celebration even more special!_ ✨
-
-With Love & Regards 💕
-*${eventDetails.family}*
-
-━━━━━━━━━━━━━━━━━━━
-👶 #Baby${eventDetails.babyName} #WelcomeCeremony #Naamkaran
-━━━━━━━━━━━━━━━━━━━`
+With Love,
+*${eventDetails.family}*`
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
   }
 
   const copyInvitationMessage = async () => {
-    const message = `🎊✨ *WELCOME CEREMONY INVITATION* ✨🎊
+    const message = `*WELCOME CEREMONY INVITATION*
 
-👶💙 *Celebrating the Arrival of* 💙👶
-🌟 *Baby ${eventDetails.babyName.toUpperCase()}* 🌟
-_Our Little Bundle of Joy!_
+*Celebrating Baby ${eventDetails.babyName.toUpperCase()}*
+Our Little Bundle of Joy!
 
-With immense joy and gratitude, we are delighted to announce the arrival of our sweet baby boy and invite you to celebrate his Welcome Ceremony.
+*Date:* ${eventDetails.date}
 
-━━━━━━━━━━━━━━━━━━━
-📅 *Programme Details*
+*Pooja Bahrana Sahib Path*
+Time: ${eventDetails.poojaTime}
 
-🗓️ *Date:* ${eventDetails.date}
+*Dinner*
+Time: ${eventDetails.dinnerTime}
 
-🕉️ *Pooja Bahrana Sahib Path*
-     ⏰ ${eventDetails.poojaTime}
+*Venue:*
+${eventDetails.venue}
+${eventDetails.address}
 
-🍽️ *Dinner*
-     ⏰ ${eventDetails.dinnerTime}
+Join us to celebrate and bless baby ${eventDetails.babyName}!
 
-📍 *Venue:*
-     ${eventDetails.venue}
-     ${eventDetails.address}
-━━━━━━━━━━━━━━━━━━━
-
-🌸 Join us to celebrate his arrival and shower your blessings! 🌸
-
-🎁 *RSVP & Share Your Wishes:*
+*RSVP & Share Wishes:*
 ${window.location.href}
 
-✨ _Your presence will make this celebration even more special!_ ✨
-
-With Love & Regards 💕
-*${eventDetails.family}*
-
-━━━━━━━━━━━━━━━━━━━
-👶 #Baby${eventDetails.babyName} #WelcomeCeremony #Naamkaran
-━━━━━━━━━━━━━━━━━━━`
+With Love,
+*${eventDetails.family}*`
     
     try {
       await navigator.clipboard.writeText(message)
-      toast.success('✅ Invitation message copied! Paste it in WhatsApp or any app.')
+      toast.success('Invitation message copied!')
     } catch (err) {
       toast.error('Failed to copy message')
     }
