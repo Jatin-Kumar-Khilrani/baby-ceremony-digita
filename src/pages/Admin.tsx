@@ -29,7 +29,10 @@ import {
   Clock,
   Train,
   Bed,
-  ForkKnife
+  ForkKnife,
+  WhatsappLogo,
+  MagnifyingGlass,
+  SortAscending
 } from '@phosphor-icons/react'
 
 const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api'
@@ -394,6 +397,8 @@ export default function Admin() {
   const [selectedRsvps, setSelectedRsvps] = useState<Set<string>>(new Set())
   const [selectedWishes, setSelectedWishes] = useState<Set<string>>(new Set())
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
+  const [rsvpSearchQuery, setRsvpSearchQuery] = useState('')
+  const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status'>('date')
   const [stats, setStats] = useState({
     totalRsvps: 0,
     attending: 0,
@@ -770,6 +775,43 @@ export default function Admin() {
     }
   }
 
+  // Filter and sort RSVPs
+  const getFilteredAndSortedRsvps = () => {
+    let filtered = [...rsvps]
+    
+    // Apply search filter
+    if (rsvpSearchQuery.trim()) {
+      const query = rsvpSearchQuery.toLowerCase()
+      filtered = filtered.filter(rsvp => 
+        rsvp.name.toLowerCase().includes(query) ||
+        rsvp.email.toLowerCase().includes(query) ||
+        rsvp.phone.includes(query) ||
+        (rsvp.roomNumber && rsvp.roomNumber.toLowerCase().includes(query))
+      )
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (rsvpSortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'date':
+          return b.timestamp - a.timestamp // Most recent first
+        case 'guests':
+          return (b.guests || 1) - (a.guests || 1) // Most guests first
+        case 'status':
+          if (a.attending === b.attending) return 0
+          return a.attending ? -1 : 1 // Attending first
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }
+
+  const filteredRsvps = getFilteredAndSortedRsvps()
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center">
@@ -999,6 +1041,47 @@ export default function Admin() {
                   <p className="text-center text-gray-500 py-8">No RSVPs yet</p>
                 ) : (
                   <>
+                    {/* Search and Sort Controls */}
+                    <div className="mb-4 space-y-3">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        {/* Search Input */}
+                        <div className="flex-1 relative">
+                          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input
+                            placeholder="Search by name, email, phone, or room..."
+                            value={rsvpSearchQuery}
+                            onChange={(e) => setRsvpSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        
+                        {/* Sort Dropdown */}
+                        <div className="w-full sm:w-48">
+                          <Select value={rsvpSortBy} onValueChange={(value: any) => setRsvpSortBy(value)}>
+                            <SelectTrigger>
+                              <div className="flex items-center gap-2">
+                                <SortAscending className="w-4 h-4" />
+                                <SelectValue />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="date">Sort by Date</SelectItem>
+                              <SelectItem value="name">Sort by Name</SelectItem>
+                              <SelectItem value="guests">Sort by Guests</SelectItem>
+                              <SelectItem value="status">Sort by Status</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {/* Results count */}
+                      {rsvpSearchQuery.trim() && (
+                        <p className="text-sm text-gray-600">
+                          Found {filteredRsvps.length} of {rsvps.length} RSVPs
+                        </p>
+                      )}
+                    </div>
+                    
                     {/* Select All Checkbox */}
                     <div className="mb-4 flex items-center gap-2 p-2 bg-gray-50 rounded">
                       <Checkbox 
@@ -1012,7 +1095,7 @@ export default function Admin() {
                     </div>
                     
                     <div className="space-y-4">
-                      {rsvps.map((rsvp, index) => (
+                      {filteredRsvps.map((rsvp, index) => (
                         <div key={rsvp.id || `rsvp-${index}`} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                           <div className="flex items-start gap-3">
                             <Checkbox 
@@ -1068,10 +1151,22 @@ export default function Admin() {
                                     {rsvp.email}
                                   </a>
                                 </div>
-                                <div className="break-words">
-                                  <PhoneIcon className="w-4 h-4 inline mr-1 text-gray-400" />
-                                  <a href={`tel:${rsvp.phone}`} className="text-blue-600 hover:underline">
-                                    {rsvp.phone}
+                                <div className="break-words flex items-center gap-2 flex-wrap">
+                                  <div>
+                                    <PhoneIcon className="w-4 h-4 inline mr-1 text-gray-400" />
+                                    <a href={`tel:${rsvp.phone}`} className="text-blue-600 hover:underline">
+                                      {rsvp.phone}
+                                    </a>
+                                  </div>
+                                  <a
+                                    href={`https://wa.me/${rsvp.phone.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-xs"
+                                    title="Chat on WhatsApp"
+                                  >
+                                    <WhatsappLogo className="w-3 h-3" weight="fill" />
+                                    WhatsApp
                                   </a>
                                 </div>
                               </div>
