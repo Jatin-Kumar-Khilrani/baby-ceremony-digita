@@ -12,9 +12,11 @@
   "dependencies": {
     "@azure/communication-email": "^1.1.0",
     "@azure/functions": "^4.0.0",
+    "@azure/openai": "^2.0.0",
     "@azure/storage-blob": "^12.17.0",
     "@types/nodemailer": "^7.0.2",
     "nodemailer": "^7.0.9",
+    "openai": "^4.67.3",
     "react-router-dom": "^7.9.4"
   },
   "devDependencies": {
