@@ -92,7 +92,7 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         const result = await response.json()
         if (result.found) {
           // Refresh RSVP data to get the new PIN
-          const refreshResponse = await fetch(`${API_BASE}/rsvps`)
+          const refreshResponse = await fetch(`${API_BASE}/rsvps?_t=${Date.now()}`)
           if (refreshResponse.ok) {
             const allRsvps = await refreshResponse.json()
             const updated = allRsvps.find((rsvp: RSVP) => rsvp.id === foundRsvp.id)
@@ -159,7 +159,9 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     
     try {
       // Search for specific RSVP by email (more efficient - only fetches one RSVP)
-      const response = await fetch(`${API_BASE}/rsvps?email=${encodeURIComponent(searchEmail)}`)
+      // Add timestamp to prevent caching
+      const cacheBuster = `&_t=${Date.now()}`
+      const response = await fetch(`${API_BASE}/rsvps?email=${encodeURIComponent(searchEmail)}${cacheBuster}`)
       
       if (response.ok) {
         const found = await response.json()
