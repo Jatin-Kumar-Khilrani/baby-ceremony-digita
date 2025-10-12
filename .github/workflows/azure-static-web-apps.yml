@@ -29,12 +29,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build API
-        run: |
-          cd api
-          npm ci
-          npm run build
-
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -43,9 +37,9 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "/" # App source code path
-          api_location: "api/dist" # Api source code path - pre-built
+          api_location: "api" # Api source code path
           output_location: "dist" # Built app content directory
-          skip_api_build: true
+          skip_api_build: false
         env:
           # Admin Authentication
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
