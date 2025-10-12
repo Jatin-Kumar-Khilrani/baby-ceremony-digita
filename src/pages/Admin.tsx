@@ -811,13 +811,13 @@ export default function Admin() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <Card key="stat-total-rsvps">
             <CardContent className="pt-6">
               <div className="text-center">
-                <Users className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                <div className="text-2xl font-bold">{stats.totalRsvps}</div>
-                <div className="text-sm text-gray-600">Total RSVPs</div>
+                <Users className="w-8 h-8 mx-auto mb-2 text-purple-600 shrink-0" />
+                <div className="text-2xl font-bold break-words">{stats.totalRsvps}</div>
+                <div className="text-sm text-gray-600 break-words">Total RSVPs</div>
               </div>
             </CardContent>
           </Card>
@@ -825,9 +825,9 @@ export default function Admin() {
           <Card key="stat-attending">
             <CardContent className="pt-6">
               <div className="text-center">
-                <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                <div className="text-2xl font-bold">{stats.attending}</div>
-                <div className="text-sm text-gray-600">Attending</div>
+                <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600 shrink-0" />
+                <div className="text-2xl font-bold break-words">{stats.attending}</div>
+                <div className="text-sm text-gray-600 break-words">Attending</div>
               </div>
             </CardContent>
           </Card>
@@ -835,9 +835,9 @@ export default function Admin() {
           <Card key="stat-not-attending">
             <CardContent className="pt-6">
               <div className="text-center">
-                <XCircle className="w-8 h-8 mx-auto mb-2 text-red-600" />
-                <div className="text-2xl font-bold">{stats.notAttending}</div>
-                <div className="text-sm text-gray-600">Not Attending</div>
+                <XCircle className="w-8 h-8 mx-auto mb-2 text-red-600 shrink-0" />
+                <div className="text-2xl font-bold break-words">{stats.notAttending}</div>
+                <div className="text-sm text-gray-600 break-words">Not Attending</div>
               </div>
             </CardContent>
           </Card>
@@ -845,9 +845,9 @@ export default function Admin() {
           <Card key="stat-total-guests">
             <CardContent className="pt-6">
               <div className="text-center">
-                <Users className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                <div className="text-2xl font-bold">{stats.totalGuests}</div>
-                <div className="text-sm text-gray-600">Total Guests</div>
+                <Users className="w-8 h-8 mx-auto mb-2 text-blue-600 shrink-0" />
+                <div className="text-2xl font-bold break-words">{stats.totalGuests}</div>
+                <div className="text-sm text-gray-600 break-words">Total Guests</div>
               </div>
             </CardContent>
           </Card>
@@ -855,9 +855,9 @@ export default function Admin() {
           <Card key="stat-wishes">
             <CardContent className="pt-6">
               <div className="text-center">
-                <Heart className="w-8 h-8 mx-auto mb-2 text-pink-600" />
-                <div className="text-2xl font-bold">{stats.totalWishes}</div>
-                <div className="text-sm text-gray-600">Wishes</div>
+                <Heart className="w-8 h-8 mx-auto mb-2 text-pink-600 shrink-0" />
+                <div className="text-2xl font-bold break-words">{stats.totalWishes}</div>
+                <div className="text-sm text-gray-600 break-words">Wishes</div>
               </div>
             </CardContent>
           </Card>
@@ -865,9 +865,9 @@ export default function Admin() {
           <Card key="stat-photos">
             <CardContent className="pt-6">
               <div className="text-center">
-                <ImageIcon className="w-8 h-8 mx-auto mb-2 text-indigo-600" />
-                <div className="text-2xl font-bold">{stats.totalPhotos}</div>
-                <div className="text-sm text-gray-600">Photos</div>
+                <ImageIcon className="w-8 h-8 mx-auto mb-2 text-indigo-600 shrink-0" />
+                <div className="text-2xl font-bold break-words">{stats.totalPhotos}</div>
+                <div className="text-sm text-gray-600 break-words">Photos</div>
               </div>
             </CardContent>
           </Card>
@@ -880,13 +880,13 @@ export default function Admin() {
               <MapPin className="w-5 h-5 text-purple-600" />
               Travel & Accommodation Overview
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <Bed className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-                    <div className="text-2xl font-bold">{stats.roomsAllocated} / 7</div>
-                    <div className="text-sm text-gray-600">Rooms Allocated</div>
+                    <Bed className="w-8 h-8 mx-auto mb-2 text-orange-600 shrink-0" />
+                    <div className="text-2xl font-bold break-words">{stats.roomsAllocated} / 7</div>
+                    <div className="text-sm text-gray-600 break-words">Rooms Allocated</div>
                   </div>
                 </CardContent>
               </Card>
@@ -894,9 +894,9 @@ export default function Admin() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <Train className="w-8 h-8 mx-auto mb-2 text-cyan-600" />
-                    <div className="text-2xl font-bold">{stats.needingTransport}</div>
-                    <div className="text-sm text-gray-600">Need Transport</div>
+                    <Train className="w-8 h-8 mx-auto mb-2 text-cyan-600 shrink-0" />
+                    <div className="text-2xl font-bold break-words">{stats.needingTransport}</div>
+                    <div className="text-sm text-gray-600 break-words">Need Transport</div>
                   </div>
                 </CardContent>
               </Card>
@@ -904,9 +904,9 @@ export default function Admin() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <ForkKnife className="w-8 h-8 mx-auto mb-2 text-teal-600" />
-                    <div className="text-2xl font-bold">{stats.lunch15 + stats.dinner15}</div>
-                    <div className="text-sm text-gray-600">Meals on Nov 15</div>
+                    <ForkKnife className="w-8 h-8 mx-auto mb-2 text-teal-600 shrink-0" />
+                    <div className="text-2xl font-bold break-words">{stats.lunch15 + stats.dinner15}</div>
+                    <div className="text-sm text-gray-600 break-words">Meals on Nov 15</div>
                   </div>
                 </CardContent>
               </Card>
@@ -914,9 +914,9 @@ export default function Admin() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <ForkKnife className="w-8 h-8 mx-auto mb-2 text-amber-600" />
-                    <div className="text-2xl font-bold">{stats.breakfast16}</div>
-                    <div className="text-sm text-gray-600">Breakfast Nov 16</div>
+                    <ForkKnife className="w-8 h-8 mx-auto mb-2 text-amber-600 shrink-0" />
+                    <div className="text-2xl font-bold break-words">{stats.breakfast16}</div>
+                    <div className="text-sm text-gray-600 break-words">Breakfast Nov 16</div>
                   </div>
                 </CardContent>
               </Card>
@@ -931,26 +931,26 @@ export default function Admin() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-amber-50 rounded-lg">
-                    <div className="text-3xl font-bold text-amber-700">{stats.breakfast15}</div>
-                    <div className="text-sm text-gray-600 mt-1">Breakfast</div>
-                    <div className="text-xs text-gray-500">Nov 15 (arrivals &lt; 10 AM)</div>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-amber-50 rounded-lg overflow-hidden">
+                    <div className="text-3xl font-bold text-amber-700 break-words">{stats.breakfast15}</div>
+                    <div className="text-sm text-gray-600 mt-1 break-words">Breakfast</div>
+                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 10 AM)</div>
                   </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-3xl font-bold text-orange-700">{stats.lunch15}</div>
-                    <div className="text-sm text-gray-600 mt-1">Lunch</div>
-                    <div className="text-xs text-gray-500">Nov 15 (arrivals &lt; 2 PM)</div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg overflow-hidden">
+                    <div className="text-3xl font-bold text-orange-700 break-words">{stats.lunch15}</div>
+                    <div className="text-sm text-gray-600 mt-1 break-words">Lunch</div>
+                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 2 PM)</div>
                   </div>
-                  <div className="text-center p-4 bg-rose-50 rounded-lg">
-                    <div className="text-3xl font-bold text-rose-700">{stats.dinner15}</div>
-                    <div className="text-sm text-gray-600 mt-1">Dinner</div>
-                    <div className="text-xs text-gray-500">Nov 15 (arrivals &lt; 8 PM)</div>
+                  <div className="text-center p-4 bg-rose-50 rounded-lg overflow-hidden">
+                    <div className="text-3xl font-bold text-rose-700 break-words">{stats.dinner15}</div>
+                    <div className="text-sm text-gray-600 mt-1 break-words">Dinner</div>
+                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 8 PM)</div>
                   </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <div className="text-3xl font-bold text-yellow-700">{stats.breakfast16}</div>
-                    <div className="text-sm text-gray-600 mt-1">Breakfast</div>
-                    <div className="text-xs text-gray-500">Nov 16 (departures ≥ 8 AM)</div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg overflow-hidden">
+                    <div className="text-3xl font-bold text-yellow-700 break-words">{stats.breakfast16}</div>
+                    <div className="text-sm text-gray-600 mt-1 break-words">Breakfast</div>
+                    <div className="text-xs text-gray-500 break-words">Nov 16 (departures ≥ 8 AM)</div>
                   </div>
                 </div>
               </CardContent>
@@ -1020,41 +1020,44 @@ export default function Admin() {
                               onCheckedChange={() => toggleRsvpSelection(rsvp.id)}
                               className="mt-1"
                             />
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <h3 className="font-semibold text-lg">{rsvp.name}</h3>
-                                      <div className="flex gap-2 mt-1">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-lg truncate">{rsvp.name}</h3>
+                                  <div className="flex flex-wrap gap-2 mt-1">
                                     {rsvp.attending ? (
-                                      <Badge className="bg-green-100 text-green-800">
+                                      <Badge className="bg-green-100 text-green-800 text-xs">
                                         <CheckCircle className="w-3 h-3 mr-1" />
                                         Attending
                                       </Badge>
                                     ) : (
-                                      <Badge className="bg-red-100 text-red-800">
+                                      <Badge className="bg-red-100 text-red-800 text-xs">
                                         <XCircle className="w-3 h-3 mr-1" />
                                         Not Attending
                                       </Badge>
                                     )}
-                                    <Badge variant="outline">
+                                    <Badge variant="outline" className="text-xs">
                                       <Users className="w-3 h-3 mr-1" />
                                       {rsvp.guests} {rsvp.guests === 1 ? 'guest' : 'guests'}
                                     </Badge>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-500 mr-2">
-                                    <Calendar className="w-4 h-4 inline mr-1" />
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                    <Calendar className="w-3 h-3 inline mr-1" />
                                     {formatDate(rsvp.timestamp)}
                                   </span>
-                                  <RSVPEditDialog rsvp={rsvp} onUpdate={updateRSVP} />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => deleteRSVP(rsvp.id)}
-                                  >
-                                    <Trash className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <RSVPEditDialog rsvp={rsvp} onUpdate={updateRSVP} />
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => deleteRSVP(rsvp.id)}
+                                      className="h-8"
+                                    >
+                                      <Trash className="w-3 h-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                               
@@ -1081,53 +1084,57 @@ export default function Admin() {
 
                               {/* Travel & Accommodation Info */}
                               {rsvp.attending && (rsvp.arrivalDateTime || rsvp.departureDateTime || rsvp.transportNeeded || rsvp.roomNumber) && (
-                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <MapPin className="w-4 h-4 text-blue-600" />
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md overflow-hidden">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
                                     <strong className="text-sm text-blue-900">Travel & Accommodation</strong>
                                   </div>
                                   
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                  <div className="space-y-2">
                                     {rsvp.arrivalDateTime && (
-                                      <div className="break-words">
-                                        <Clock className="w-3 h-3 inline mr-1 text-gray-500" />
-                                        <span className="text-gray-600">Arrival:</span>
-                                        <div className="font-medium text-gray-900">{formatDateTime(rsvp.arrivalDateTime)}</div>
+                                      <div className="flex items-start gap-2 text-xs">
+                                        <Clock className="w-3 h-3 mt-0.5 text-gray-500 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                          <span className="text-gray-600 block">Arrival:</span>
+                                          <div className="font-medium text-gray-900 break-words">{formatDateTime(rsvp.arrivalDateTime)}</div>
+                                        </div>
                                       </div>
                                     )}
                                     {rsvp.departureDateTime && (
-                                      <div className="break-words">
-                                        <Clock className="w-3 h-3 inline mr-1 text-gray-500" />
-                                        <span className="text-gray-600">Departure:</span>
-                                        <div className="font-medium text-gray-900">{formatDateTime(rsvp.departureDateTime)}</div>
+                                      <div className="flex items-start gap-2 text-xs">
+                                        <Clock className="w-3 h-3 mt-0.5 text-gray-500 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                          <span className="text-gray-600 block">Departure:</span>
+                                          <div className="font-medium text-gray-900 break-words">{formatDateTime(rsvp.departureDateTime)}</div>
+                                        </div>
                                       </div>
                                     )}
                                     {rsvp.transportNeeded && (
-                                      <div className="col-span-2">
-                                        <Badge className="bg-cyan-100 text-cyan-800">
+                                      <div className="pt-1">
+                                        <Badge className="bg-cyan-100 text-cyan-800 text-xs">
                                           <Train className="w-3 h-3 mr-1" />
                                           Needs Transportation
                                         </Badge>
                                       </div>
                                     )}
                                     {rsvp.roomNumber && (
-                                      <div className="col-span-2">
-                                        <Badge className="bg-orange-100 text-orange-800">
+                                      <div className="pt-1">
+                                        <Badge className="bg-orange-100 text-orange-800 text-xs">
                                           <Bed className="w-3 h-3 mr-1" />
                                           {rsvp.roomNumber}
                                         </Badge>
                                       </div>
                                     )}
                                     {rsvp.transportDetails && (
-                                      <div className="col-span-2">
-                                        <span className="text-gray-600">Transport Details:</span>
-                                        <div className="font-medium text-gray-900">{rsvp.transportDetails}</div>
+                                      <div className="pt-1">
+                                        <span className="text-xs text-gray-600 block">Transport Details:</span>
+                                        <div className="text-xs font-medium text-gray-900 break-words">{rsvp.transportDetails}</div>
                                       </div>
                                     )}
                                     {rsvp.adminNotes && (
-                                      <div className="col-span-2 pt-2 border-t border-blue-200">
-                                        <span className="text-gray-600">Admin Notes:</span>
-                                        <div className="text-gray-700 italic text-xs mt-1">{rsvp.adminNotes}</div>
+                                      <div className="pt-2 border-t border-blue-200">
+                                        <span className="text-xs text-gray-600 block">Admin Notes:</span>
+                                        <div className="text-xs text-gray-700 italic break-words">{rsvp.adminNotes}</div>
                                       </div>
                                     )}
                                   </div>

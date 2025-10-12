@@ -440,14 +440,14 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       {/* RSVP Stats */}
       <Card className="bg-accent/10 border-accent/30">
         <CardContent className="pt-6">
-          <div className="flex justify-center items-center gap-6">
-            <Badge variant="secondary" className="text-lg py-2 px-4">
-              <Users size={18} className="mr-2" />
-              {attendingCount} Families Attending
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6">
+            <Badge variant="secondary" className="text-sm sm:text-lg py-2 px-3 sm:px-4 shrink-0 min-w-0">
+              <Users size={18} className="mr-2 shrink-0" />
+              <span className="truncate">{attendingCount} Families Attending</span>
             </Badge>
-            <Badge variant="outline" className="text-lg py-2 px-4">
-              <Heart size={18} className="mr-2" />
-              {totalGuests} Total Guests
+            <Badge variant="outline" className="text-sm sm:text-lg py-2 px-3 sm:px-4 shrink-0 min-w-0">
+              <Heart size={18} className="mr-2 shrink-0" />
+              <span className="truncate">{totalGuests} Total Guests</span>
             </Badge>
           </div>
         </CardContent>
