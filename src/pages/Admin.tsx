@@ -1349,6 +1349,15 @@ export default function Admin() {
                                         <Badge className="bg-cyan-100 text-cyan-800 text-xs">
                                           <Train className="w-3 h-3 mr-1" />
                                           Needs Transportation
+                                          {rsvp.transportMode && (
+                                            <span className="ml-1">
+                                              {rsvp.transportMode === 'bus' && '🚌'}
+                                              {rsvp.transportMode === 'train' && '🚂'}
+                                              {rsvp.transportMode === 'flight' && '✈️'}
+                                              {' '}
+                                              {rsvp.transportMode.charAt(0).toUpperCase() + rsvp.transportMode.slice(1)}
+                                            </span>
+                                          )}
                                         </Badge>
                                       </div>
                                     )}
