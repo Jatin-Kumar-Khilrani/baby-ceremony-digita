@@ -4,3 +4,4 @@
 import './rsvps';
 import './photos';
 import './wishes';
+import './enhance-wish';

@@ -110,11 +110,40 @@ export async function wishes(request: HttpRequest, context: InvocationContext): 
       const existingWishes = await getStorageData("wishes.json");
       const wishesArray = Array.isArray(existingWishes) ? existingWishes : [];
       
+      // Validate required fields
+      if (!body.name || !body.message) {
+        return {
+          status: 400,
+          headers,
+          body: JSON.stringify({ error: "Name and message are required" })
+        };
+      }
+
+      // Check if email is provided and if they already submitted a wish
+      if (body.email) {
+        const normalizedEmail = body.email.toLowerCase().trim();
+        const existingWish = wishesArray.find(
+          (wish: any) => wish.email && wish.email.toLowerCase().trim() === normalizedEmail
+        );
+        
+        if (existingWish) {
+          return {
+            status: 409,
+            headers,
+            body: JSON.stringify({ 
+              error: "You have already submitted a wish. Only one wish per person is allowed.",
+              existing: existingWish
+            })
+          };
+        }
+      }
+      
       // Create new wish with ID and timestamp
       const newWish = {
         id: Date.now().toString(),
         name: body.name,
         message: body.message,
+        email: body.email || null,
         timestamp: Date.now()
       };
       

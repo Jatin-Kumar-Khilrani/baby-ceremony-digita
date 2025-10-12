@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Heart, PaperPlaneTilt, Star } from '@phosphor-icons/react'
+import { Heart, PaperPlaneTilt, Star, Sparkle, ArrowClockwise } from '@phosphor-icons/react'
 
 interface Wish {
   id: string
   name: string
   message: string
+  email?: string
   timestamp: number
 }
 
@@ -21,8 +22,11 @@ export default function GuestWishes() {
   const [wishes, setWishes] = useState<Wish[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEnhancing, setIsEnhancing] = useState(false)
+  const [enhancedMessage, setEnhancedMessage] = useState('')
   const [wishData, setWishData] = useState({
     name: '',
+    email: '',
     message: ''
   })
 
@@ -57,6 +61,11 @@ export default function GuestWishes() {
       return
     }
 
+    if (!wishData.email) {
+      toast.error('Please provide your email to prevent duplicate wishes')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -67,6 +76,7 @@ export default function GuestWishes() {
         },
         body: JSON.stringify({
           name: wishData.name,
+          email: wishData.email,
           message: wishData.message
         })
       })
@@ -79,8 +89,13 @@ export default function GuestWishes() {
         
         setWishData({
           name: '',
+          email: '',
           message: ''
         })
+        setEnhancedMessage('')
+      } else if (response.status === 409) {
+        const data = await response.json()
+        toast.error(data.error || 'You have already submitted a wish')
       } else {
         toast.error('Failed to submit wish')
       }
@@ -90,6 +105,52 @@ export default function GuestWishes() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleEnhance = async () => {
+    if (!wishData.message || wishData.message.trim().length < 5) {
+      toast.error('Please write a wish first (at least 5 characters)')
+      return
+    }
+
+    if (!wishData.email || !wishData.email.trim()) {
+      toast.error('Please enter your email first to prevent duplicate wishes')
+      return
+    }
+
+    setIsEnhancing(true)
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/enhance-wish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: wishData.message })
+      })
+
+      if (response.ok) {
+        const { enhanced } = await response.json()
+        setEnhancedMessage(enhanced)
+        toast.success('✨ Wish enhanced! Review and use if you like it.')
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Failed to enhance wish')
+      }
+    } catch (error) {
+      console.error('Enhancement error:', error)
+      toast.error('Failed to enhance wish. Please try again.')
+    } finally {
+      setIsEnhancing(false)
+    }
+  }
+
+  const useEnhanced = () => {
+    setWishData(prev => ({ ...prev, message: enhancedMessage }))
+    setEnhancedMessage('')
+    toast.success('Enhanced wish applied!')
+  }
+
+  const resetEnhanced = () => {
+    setEnhancedMessage('')
   }
 
   const formatDate = (timestamp: number | undefined) => {
@@ -124,7 +185,7 @@ export default function GuestWishes() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="wish-name">Your Name</Label>
+              <Label htmlFor="wish-name">Your Name *</Label>
               <Input
                 id="wish-name"
                 value={wishData.name}
@@ -133,9 +194,24 @@ export default function GuestWishes() {
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="wish-email">Your Email *</Label>
+              <Input
+                id="wish-email"
+                type="email"
+                value={wishData.email}
+                onChange={(e) => setWishData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="your.email@example.com"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Required to prevent duplicate wishes. One wish per person.
+              </p>
+            </div>
             
             <div className="space-y-2">
-              <Label htmlFor="wish-message">Your Wishes & Blessings</Label>
+              <Label htmlFor="wish-message">Your Wishes & Blessings *</Label>
               <Textarea
                 id="wish-message"
                 value={wishData.message}
@@ -144,7 +220,58 @@ export default function GuestWishes() {
                 rows={4}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                💬 Supports: English, Hindi (हिंदी), Marwadi, Rajasthani, Sindhi (in English or سنڌي)
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleEnhance}
+                  disabled={isEnhancing || !wishData.email || !wishData.message || wishData.message.length < 5}
+                  className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                >
+                  <Sparkle size={16} className="mr-2" />
+                  {isEnhancing ? 'Enhancing...' : 'Enhance with AI ✨'}
+                </Button>
+              </div>
             </div>
+
+            {enhancedMessage && (
+              <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Sparkle size={20} className="text-purple-600 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <Label className="text-purple-900 font-semibold">AI Enhanced Version:</Label>
+                      <p className="mt-2 text-sm text-purple-800 leading-relaxed italic">
+                        "{enhancedMessage}"
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      type="button"
+                      size="sm" 
+                      onClick={useEnhanced}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Use This Version
+                    </Button>
+                    <Button 
+                      type="button"
+                      size="sm" 
+                      variant="outline" 
+                      onClick={resetEnhanced}
+                    >
+                      <ArrowClockwise size={16} className="mr-1" />
+                      Keep Original
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
               <PaperPlaneTilt size={18} className="mr-2" />
@@ -209,22 +336,37 @@ export default function GuestWishes() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            Here are some beautiful blessing ideas to get you started:
+            Here are some beautiful blessing ideas in different languages:
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="italic text-foreground/80">
-              "May baby Parv be blessed with health, happiness, and endless love..."
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="space-y-2">
+              <p className="font-semibold text-xs text-muted-foreground">English:</p>
+              <div className="italic text-foreground/80 pl-3 border-l-2 border-purple-300">
+                "May baby Parv be blessed with health, happiness, and endless love. Wishing this precious little one a life filled with joy and wonderful adventures."
+              </div>
             </div>
-            <div className="italic text-foreground/80">
-              "Wishing little Parv a life filled with joy, laughter, and wonderful adventures..."
+            <div className="space-y-2">
+              <p className="font-semibold text-xs text-muted-foreground">Hindi (हिंदी):</p>
+              <div className="italic text-foreground/80 pl-3 border-l-2 border-blue-300">
+                "नन्हे पर्व को स्वास्थ्य, खुशी और अनंत प्यार का आशीर्वाद मिले। इस प्यारे बच्चे को जीवन में खुशियों और सफलता की कामना करते हैं।"
+              </div>
             </div>
-            <div className="italic text-foreground/80">
-              "May this precious little one bring immense joy to your family..."
+            <div className="space-y-2">
+              <p className="font-semibold text-xs text-muted-foreground">Rajasthani (राजस्थानी):</p>
+              <div className="italic text-foreground/80 pl-3 border-l-2 border-orange-300">
+                "नानो पर्व नै सगळी खुशियां अर आशीर्वाद मिलै। थारो बेटो जीवन में सदा सुखी अर सफळ रहवै।"
+              </div>
             </div>
-            <div className="italic text-foreground/80">
-              "Congratulations on your beautiful blessing. May Parv grow up strong and wise..."
+            <div className="space-y-2">
+              <p className="font-semibold text-xs text-muted-foreground">Sindhi (Roman/English):</p>
+              <div className="italic text-foreground/80 pl-3 border-l-2 border-green-300">
+                "Nanho Parv ne ghani ghani mubarak. Tuhinjo jiwan khushiyon saan bhariyo hove ۽ sada sukhi raho."
+              </div>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-4 italic">
+            ✨ AI will enhance your wish in whichever language you write!
+          </p>
         </CardContent>
       </Card>
     </div>
