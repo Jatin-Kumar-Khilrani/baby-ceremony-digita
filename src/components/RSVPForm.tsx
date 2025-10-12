@@ -166,6 +166,20 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       if (response.ok) {
         const found = await response.json()
         
+        // CRITICAL: Check if API returned an array (all RSVPs) vs object (single RSVP)
+        // Production API bug workaround: if array is returned, email wasn't found
+        if (Array.isArray(found)) {
+          // API returned all RSVPs, not a specific one = NOT FOUND
+          setFoundRsvp(null)
+          setFormData(prev => ({ ...prev, email: searchEmail }))
+          toast.message('No RSVP Found', {
+            description: 'You can submit a new RSVP using the form below! 👇',
+            duration: 5000,
+          })
+          setIsSearching(false)
+          return
+        }
+        
         // Normalize dietary restrictions for legacy data
         const normalizedRsvp = {
           ...found,
