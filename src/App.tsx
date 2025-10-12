@@ -132,29 +132,30 @@ function App() {
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
   const shareWhatsApp = () => {
-    const message = `🎉 *WELCOME CEREMONY INVITATION* 🎉
+    // Using simpler, universally supported emojis and proper encoding for WhatsApp
+    const message = `\u{1F389} *WELCOME CEREMONY INVITATION* \u{1F389}
 
-👶 *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* 💙
+\u{1F476} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* \u{1F499}
 Our Little Bundle of Joy!
 
-📅 *Date:* ${eventDetails.date}
+\u{1F4C5} *Date:* ${eventDetails.date}
 
-🙏 *Pooja Bahrana Sahib Path*
-⏰ Time: ${eventDetails.poojaTime}
+\u{1F64F} *Pooja Bahrana Sahib Path*
+\u{23F0} Time: ${eventDetails.poojaTime}
 
-🍽 *Dinner*
-⏰ Time: ${eventDetails.dinnerTime}
+\u{1F37D}\u{FE0F} *Dinner*
+\u{23F0} Time: ${eventDetails.dinnerTime}
 
-📍 *Venue:*
+\u{1F4CD} *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-✨ Join us to celebrate and bless baby ${eventDetails.babyName}! ✨
+\u{2728} Join us to celebrate and bless baby ${eventDetails.babyName}! \u{2728}
 
-🔗 *RSVP & Share Wishes:*
+\u{1F517} *RSVP & Share Wishes:*
 ${window.location.href}
 
-💕 With Love,
+\u{1F495} With Love,
 *${eventDetails.family}*`
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
@@ -162,29 +163,30 @@ ${window.location.href}
   }
 
   const copyInvitationMessage = async () => {
-    const message = `🎉 *WELCOME CEREMONY INVITATION* 🎉
+    // Using simpler, universally supported emojis with Unicode escape sequences
+    const message = `\u{1F389} *WELCOME CEREMONY INVITATION* \u{1F389}
 
-👶 *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* 💙
+\u{1F476} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* \u{1F499}
 Our Little Bundle of Joy!
 
-📅 *Date:* ${eventDetails.date}
+\u{1F4C5} *Date:* ${eventDetails.date}
 
-🙏 *Pooja Bahrana Sahib Path*
-⏰ Time: ${eventDetails.poojaTime}
+\u{1F64F} *Pooja Bahrana Sahib Path*
+\u{23F0} Time: ${eventDetails.poojaTime}
 
-🍽 *Dinner*
-⏰ Time: ${eventDetails.dinnerTime}
+\u{1F37D}\u{FE0F} *Dinner*
+\u{23F0} Time: ${eventDetails.dinnerTime}
 
-📍 *Venue:*
+\u{1F4CD} *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-✨ Join us to celebrate and bless baby ${eventDetails.babyName}! ✨
+\u{2728} Join us to celebrate and bless baby ${eventDetails.babyName}! \u{2728}
 
-🔗 *RSVP & Share Wishes:*
+\u{1F517} *RSVP & Share Wishes:*
 ${window.location.href}
 
-💕 With Love,
+\u{1F495} With Love,
 *${eventDetails.family}*`
     
     try {
