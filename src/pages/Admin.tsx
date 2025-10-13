@@ -588,6 +588,23 @@ export default function Admin() {
     return new Date(timestamp).toLocaleString()
   }
 
+  // Helper function to format phone number for WhatsApp
+  const formatPhoneForWhatsApp = (phone: string) => {
+    // Remove all non-numeric characters
+    let cleaned = phone.replace(/[^0-9]/g, '')
+    
+    // If number starts with 0 (Indian format), remove it and add country code 91
+    if (cleaned.startsWith('0')) {
+      cleaned = '91' + cleaned.substring(1)
+    }
+    // If number doesn't start with country code, assume India and add 91
+    else if (cleaned.length === 10) {
+      cleaned = '91' + cleaned
+    }
+    
+    return cleaned
+  }
+
   // CRUD Operations for RSVPs
   const deleteRSVP = async (id: string) => {
     if (!confirm('Are you sure you want to delete this RSVP?')) return
@@ -1254,22 +1271,23 @@ export default function Admin() {
         )}
 
         {/* Tabs */}
-        <Tabs 
-          value={activeTab} 
-          onValueChange={(value) => {
-            console.log('Tab changed to:', value)
-            setActiveTab(value as 'rsvps' | 'wishes' | 'photos')
-          }} 
-          className="space-y-4"
-        >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="rsvps">RSVPs</TabsTrigger>
-            <TabsTrigger value="wishes">Wishes</TabsTrigger>
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-          </TabsList>
+        <div ref={rsvpSectionRef}>
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(value) => {
+              console.log('Tab changed to:', value)
+              setActiveTab(value as 'rsvps' | 'wishes' | 'photos')
+            }} 
+            className="space-y-4"
+          >
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="rsvps">RSVPs</TabsTrigger>
+              <TabsTrigger value="wishes">Wishes</TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
+            </TabsList>
 
-          {/* RSVPs Tab */}
-          <TabsContent value="rsvps" ref={rsvpSectionRef}>
+            {/* RSVPs Tab */}
+            <TabsContent value="rsvps">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1422,7 +1440,7 @@ export default function Admin() {
                                     </a>
                                   </div>
                                   <a
-                                    href={`https://wa.me/${rsvp.phone.replace(/[^0-9]/g, '')}`}
+                                    href={`https://wa.me/${formatPhoneForWhatsApp(rsvp.phone)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-xs"
@@ -1702,6 +1720,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   )
