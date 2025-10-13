@@ -103,86 +103,106 @@ function App() {
   const attendingCount = rsvps?.filter(rsvp => rsvp.attending).length || 0
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
-    const shareOnWhatsApp = () => {
-    // Using String.fromCodePoint for explicit emoji conversion - guaranteed to work
-    const party = String.fromCodePoint(0x1F389)  // 🎉
-    const baby = String.fromCodePoint(0x1F476)   // 👶
-    const heart = String.fromCodePoint(0x1F499)  // 💙
-    const calendar = String.fromCodePoint(0x1F4C5) // 📅
-    const pray = String.fromCodePoint(0x1F64F)   // 🙏
-    const clock = String.fromCodePoint(0x23F0)   // ⏰
-    const fork = String.fromCodePoint(0x1F37D)   // 🍽️
-    const pin = String.fromCodePoint(0x1F4CD)    // 📍
-    const sparkle = String.fromCodePoint(0x2728) // ✨
-    const link = String.fromCodePoint(0x1F517)   // 🔗
-    const love = String.fromCodePoint(0x1F495)   // 💕
+    const shareOnWhatsApp = async () => {
+    // Generate emojis at runtime inside function - bypasses build process
+    const e = {
+      party: String.fromCodePoint(parseInt('1F389', 16)),
+      baby: String.fromCodePoint(parseInt('1F476', 16)),
+      heart: String.fromCodePoint(parseInt('1F499', 16)),
+      calendar: String.fromCodePoint(parseInt('1F4C5', 16)),
+      pray: String.fromCodePoint(parseInt('1F64F', 16)),
+      clock: String.fromCodePoint(parseInt('23F0', 16)),
+      fork: String.fromCodePoint(parseInt('1F37D', 16)),
+      pin: String.fromCodePoint(parseInt('1F4CD', 16)),
+      sparkle: String.fromCodePoint(parseInt('2728', 16)),
+      link: String.fromCodePoint(parseInt('1F517', 16)),
+      love: String.fromCodePoint(parseInt('1F495', 16))
+    }
     
-    const message = `${party} *WELCOME CEREMONY INVITATION* ${party}
+    // Debug: Check if emojis are generated correctly
+    console.log('Emoji test:', e.party, e.baby, e.heart)
+    console.log('Emoji codes:', e.party.codePointAt(0)?.toString(16), e.baby.codePointAt(0)?.toString(16))
+    
+    const message = `${e.party} *WELCOME CEREMONY INVITATION* ${e.party}
 
-${baby} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* ${heart}
+${e.baby} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* ${e.heart}
 Our Little Bundle of Joy!
 
-${calendar} *Date:* ${eventDetails.date}
+${e.calendar} *Date:* ${eventDetails.date}
 
-${pray} *Poojya पूज्य Bahrana Sahib Path*
-${clock} Time: ${eventDetails.poojaTime}
+${e.pray} *Poojya पूज्य Bahrana Sahib Path*
+${e.clock} Time: ${eventDetails.poojaTime}
 
-${fork} *Dinner*
-${clock} Time: ${eventDetails.dinnerTime}
+${e.fork} *Dinner*
+${e.clock} Time: ${eventDetails.dinnerTime}
 
-${pin} *Venue:*
+${e.pin} *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-${sparkle} Join us to celebrate and bless baby ${eventDetails.babyName}! ${sparkle}
+${e.sparkle} Join us to celebrate and bless baby ${eventDetails.babyName}! ${e.sparkle}
 
-${link} *RSVP & Share Wishes:*
+${e.link} *RSVP & Share Wishes:*
 ${window.location.href}
 
-${love} With Love,
+${e.love} With Love,
 *${eventDetails.family}*`
     
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+    console.log('Message preview:', message.substring(0, 100))
+    
+    // Copy message to clipboard first
+    try {
+      await navigator.clipboard.writeText(message)
+      toast.success('Message copied! Paste it in WhatsApp', {
+        description: 'The invitation has been copied to your clipboard with emojis'
+      })
+    } catch (err) {
+      console.error('Clipboard copy failed:', err)
+    }
+    
+    // Open WhatsApp (message will be copied, user can paste)
+    window.open('https://web.whatsapp.com/', '_blank')
   }
 
   const copyInvitationMessage = async () => {
-    // Using String.fromCodePoint for explicit emoji conversion - guaranteed to work
-    const party = String.fromCodePoint(0x1F389)  // 🎉
-    const baby = String.fromCodePoint(0x1F476)   // 👶
-    const heart = String.fromCodePoint(0x1F499)  // 💙
-    const calendar = String.fromCodePoint(0x1F4C5) // 📅
-    const pray = String.fromCodePoint(0x1F64F)   // 🙏
-    const clock = String.fromCodePoint(0x23F0)   // ⏰
-    const fork = String.fromCodePoint(0x1F37D)   // 🍽️
-    const pin = String.fromCodePoint(0x1F4CD)    // 📍
-    const sparkle = String.fromCodePoint(0x2728) // ✨
-    const link = String.fromCodePoint(0x1F517)   // 🔗
-    const love = String.fromCodePoint(0x1F495)   // 💕
+    // Generate emojis at runtime inside function - bypasses build process
+    const e = {
+      party: String.fromCodePoint(parseInt('1F389', 16)),
+      baby: String.fromCodePoint(parseInt('1F476', 16)),
+      heart: String.fromCodePoint(parseInt('1F499', 16)),
+      calendar: String.fromCodePoint(parseInt('1F4C5', 16)),
+      pray: String.fromCodePoint(parseInt('1F64F', 16)),
+      clock: String.fromCodePoint(parseInt('23F0', 16)),
+      fork: String.fromCodePoint(parseInt('1F37D', 16)),
+      pin: String.fromCodePoint(parseInt('1F4CD', 16)),
+      sparkle: String.fromCodePoint(parseInt('2728', 16)),
+      link: String.fromCodePoint(parseInt('1F517', 16)),
+      love: String.fromCodePoint(parseInt('1F495', 16))
+    }
     
-    const message = `${party} *WELCOME CEREMONY INVITATION* ${party}
+    const message = `${e.party} *WELCOME CEREMONY INVITATION* ${e.party}
 
-${baby} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* ${heart}
+${e.baby} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* ${e.heart}
 Our Little Bundle of Joy!
 
-${calendar} *Date:* ${eventDetails.date}
+${e.calendar} *Date:* ${eventDetails.date}
 
-${pray} *Poojya पूज्य Bahrana Sahib Path*
-${clock} Time: ${eventDetails.poojaTime}
+${e.pray} *Poojya पूज्य Bahrana Sahib Path*
+${e.clock} Time: ${eventDetails.poojaTime}
 
-${fork} *Dinner*
-${clock} Time: ${eventDetails.dinnerTime}
+${e.fork} *Dinner*
+${e.clock} Time: ${eventDetails.dinnerTime}
 
-${pin} *Venue:*
+${e.pin} *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-${sparkle} Join us to celebrate and bless baby ${eventDetails.babyName}! ${sparkle}
+${e.sparkle} Join us to celebrate and bless baby ${eventDetails.babyName}! ${e.sparkle}
 
-${link} *RSVP & Share Wishes:*
+${e.link} *RSVP & Share Wishes:*
 ${window.location.href}
 
-${love} With Love,
+${e.love} With Love,
 *${eventDetails.family}*`
     
     try {
