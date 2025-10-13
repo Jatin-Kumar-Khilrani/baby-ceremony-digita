@@ -150,7 +150,21 @@ ${e.love} With Love,
     
     console.log('Message preview:', message.substring(0, 100))
     
-    // Copy message to clipboard first
+    // Try native mobile share first (works on mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Welcome Ceremony Invitation',
+          text: message
+        })
+        return // Success, don't need to do clipboard approach
+      } catch (err) {
+        // User cancelled or share failed, fall back to clipboard
+        console.log('Native share cancelled or failed:', err)
+      }
+    }
+    
+    // Fallback: Copy message to clipboard (works on desktop)
     try {
       await navigator.clipboard.writeText(message)
       toast.success('Message copied! Paste it in WhatsApp', {
@@ -158,6 +172,7 @@ ${e.love} With Love,
       })
     } catch (err) {
       console.error('Clipboard copy failed:', err)
+      toast.error('Failed to copy message. Please try again.')
     }
     
     // Open WhatsApp (message will be copied, user can paste)
