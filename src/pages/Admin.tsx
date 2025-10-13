@@ -467,7 +467,8 @@ export default function Admin() {
     dinner15: 0,
     breakfast16: 0,
     lunch16: 0,
-    dinner16: 0
+    dinner16: 0,
+    fasting: 0
   })
 
   // Check if already authenticated on mount
@@ -533,6 +534,11 @@ export default function Admin() {
       const needingTransport = attending.filter((r: RSVP) => r.transportNeeded).length
       const roomsAllocated = attending.filter((r: RSVP) => r.roomNumber).length
       const meals = calculateMeals(rsvpArray)
+      
+      // Fasting count - guests with dietary restrictions mentioning fasting
+      const fasting = attending.filter((r: RSVP) => 
+        r.dietaryRestrictions && r.dietaryRestrictions.toLowerCase().includes('fasting')
+      ).reduce((sum: number, r: RSVP) => sum + (r.guests || 1), 0)
 
       setStats({
         totalRsvps: rsvpArray.length,
@@ -543,6 +549,7 @@ export default function Admin() {
         totalPhotos: Array.isArray(photoData) ? photoData.length : (photoData ? 1 : 0),
         needingTransport,
         roomsAllocated,
+        fasting,
         ...meals
       })
     } catch (error) {
@@ -924,6 +931,7 @@ export default function Admin() {
 
   // Handler for clicking total RSVPs stat - scroll to RSVPs
   const handleTotalRsvpsClick = () => {
+    console.log('Total RSVPs clicked, switching to rsvps tab')
     setActiveTab('rsvps')
     setRsvpSortBy('date')
     setTimeout(() => {
@@ -1099,7 +1107,7 @@ export default function Admin() {
               <MapPin className="w-5 h-5 text-purple-600" />
               Travel & Accommodation Overview
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Card
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={handleRoomsClick}
@@ -1133,8 +1141,9 @@ export default function Admin() {
                 <CardContent className="pt-6">
                   <div className="text-center">
                     <ForkKnife className="w-8 h-8 mx-auto mb-2 text-teal-600 shrink-0" />
-                    <div className="text-2xl font-bold break-words">{stats.lunch15 + stats.dinner15}</div>
+                    <div className="text-2xl font-bold break-words">{stats.breakfast15 + stats.lunch15 + stats.dinner15}</div>
                     <div className="text-sm text-gray-600 break-words">Meals on Nov 15</div>
+                    <div className="text-xs text-gray-500 break-words mt-1">Total count</div>
                   </div>
                 </CardContent>
               </Card>
@@ -1148,6 +1157,26 @@ export default function Admin() {
                     <ForkKnife className="w-8 h-8 mx-auto mb-2 text-amber-600 shrink-0" />
                     <div className="text-2xl font-bold break-words">{stats.breakfast16}</div>
                     <div className="text-sm text-gray-600 break-words">Breakfast Nov 16</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => {
+                  setActiveTab('rsvps')
+                  setRsvpSortBy('date')
+                  setTimeout(() => {
+                    rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }, 100)
+                }}
+              >
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <Heart className="w-8 h-8 mx-auto mb-2 text-purple-600 shrink-0" />
+                    <div className="text-2xl font-bold break-words">{stats.fasting}</div>
+                    <div className="text-sm text-gray-600 break-words">Fasting Guests</div>
+                    <div className="text-xs text-gray-500 break-words mt-1">Total count</div>
                   </div>
                 </CardContent>
               </Card>
@@ -1225,7 +1254,14 @@ export default function Admin() {
         )}
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'rsvps' | 'wishes' | 'photos')} className="space-y-4">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => {
+            console.log('Tab changed to:', value)
+            setActiveTab(value as 'rsvps' | 'wishes' | 'photos')
+          }} 
+          className="space-y-4"
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="rsvps">RSVPs</TabsTrigger>
             <TabsTrigger value="wishes">Wishes</TabsTrigger>
