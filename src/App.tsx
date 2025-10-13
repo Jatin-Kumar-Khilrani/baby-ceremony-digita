@@ -104,30 +104,42 @@ function App() {
   const totalGuests = rsvps?.filter(rsvp => rsvp.attending).reduce((sum, rsvp) => sum + rsvp.guests, 0) || 0
 
     const shareOnWhatsApp = () => {
-    // Using simpler, universally supported emojis and proper encoding for WhatsApp
-    const message = `\u{1F389} *WELCOME CEREMONY INVITATION* \u{1F389}
+    // Using String.fromCodePoint for explicit emoji conversion - guaranteed to work
+    const party = String.fromCodePoint(0x1F389)  // 🎉
+    const baby = String.fromCodePoint(0x1F476)   // 👶
+    const heart = String.fromCodePoint(0x1F499)  // 💙
+    const calendar = String.fromCodePoint(0x1F4C5) // 📅
+    const pray = String.fromCodePoint(0x1F64F)   // 🙏
+    const clock = String.fromCodePoint(0x23F0)   // ⏰
+    const fork = String.fromCodePoint(0x1F37D)   // 🍽️
+    const pin = String.fromCodePoint(0x1F4CD)    // 📍
+    const sparkle = String.fromCodePoint(0x2728) // ✨
+    const link = String.fromCodePoint(0x1F517)   // 🔗
+    const love = String.fromCodePoint(0x1F495)   // 💕
+    
+    const message = `${party} *WELCOME CEREMONY INVITATION* ${party}
 
-\u{1F476} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* \u{1F499}
+${baby} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* ${heart}
 Our Little Bundle of Joy!
 
-\u{1F4C5} *Date:* ${eventDetails.date}
+${calendar} *Date:* ${eventDetails.date}
 
-\u{1F64F} *Poojya पूज्य Bahrana Sahib Path*
-\u{23F0} Time: ${eventDetails.poojaTime}
+${pray} *Poojya पूज्य Bahrana Sahib Path*
+${clock} Time: ${eventDetails.poojaTime}
 
-\u{1F37D}\u{FE0F} *Dinner*
-\u{23F0} Time: ${eventDetails.dinnerTime}
+${fork} *Dinner*
+${clock} Time: ${eventDetails.dinnerTime}
 
-\u{1F4CD} *Venue:*
+${pin} *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-\u{2728} Join us to celebrate and bless baby ${eventDetails.babyName}! \u{2728}
+${sparkle} Join us to celebrate and bless baby ${eventDetails.babyName}! ${sparkle}
 
-\u{1F517} *RSVP & Share Wishes:*
+${link} *RSVP & Share Wishes:*
 ${window.location.href}
 
-\u{1F495} With Love,
+${love} With Love,
 *${eventDetails.family}*`
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
@@ -135,30 +147,42 @@ ${window.location.href}
   }
 
   const copyInvitationMessage = async () => {
-    // Using simpler, universally supported emojis with Unicode escape sequences
-    const message = `\u{1F389} *WELCOME CEREMONY INVITATION* \u{1F389}
+    // Using String.fromCodePoint for explicit emoji conversion - guaranteed to work
+    const party = String.fromCodePoint(0x1F389)  // 🎉
+    const baby = String.fromCodePoint(0x1F476)   // 👶
+    const heart = String.fromCodePoint(0x1F499)  // 💙
+    const calendar = String.fromCodePoint(0x1F4C5) // 📅
+    const pray = String.fromCodePoint(0x1F64F)   // 🙏
+    const clock = String.fromCodePoint(0x23F0)   // ⏰
+    const fork = String.fromCodePoint(0x1F37D)   // 🍽️
+    const pin = String.fromCodePoint(0x1F4CD)    // 📍
+    const sparkle = String.fromCodePoint(0x2728) // ✨
+    const link = String.fromCodePoint(0x1F517)   // 🔗
+    const love = String.fromCodePoint(0x1F495)   // 💕
+    
+    const message = `${party} *WELCOME CEREMONY INVITATION* ${party}
 
-\u{1F476} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* \u{1F499}
+${baby} *Celebrating Baby ${eventDetails.babyName.toUpperCase()}* ${heart}
 Our Little Bundle of Joy!
 
-\u{1F4C5} *Date:* ${eventDetails.date}
+${calendar} *Date:* ${eventDetails.date}
 
-\u{1F64F} *Poojya पूज्य Bahrana Sahib Path*
-\u{23F0} Time: ${eventDetails.poojaTime}
+${pray} *Poojya पूज्य Bahrana Sahib Path*
+${clock} Time: ${eventDetails.poojaTime}
 
-\u{1F37D}\u{FE0F} *Dinner*
-\u{23F0} Time: ${eventDetails.dinnerTime}
+${fork} *Dinner*
+${clock} Time: ${eventDetails.dinnerTime}
 
-\u{1F4CD} *Venue:*
+${pin} *Venue:*
 ${eventDetails.venue}
 ${eventDetails.address}
 
-\u{2728} Join us to celebrate and bless baby ${eventDetails.babyName}! \u{2728}
+${sparkle} Join us to celebrate and bless baby ${eventDetails.babyName}! ${sparkle}
 
-\u{1F517} *RSVP & Share Wishes:*
+${link} *RSVP & Share Wishes:*
 ${window.location.href}
 
-\u{1F495} With Love,
+${love} With Love,
 *${eventDetails.family}*`
     
     try {
