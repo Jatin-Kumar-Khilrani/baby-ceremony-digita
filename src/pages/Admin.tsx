@@ -511,10 +511,12 @@ export default function Admin() {
   const fetchAllData = async () => {
     setLoading(true)
     try {
+      // Add cache-busting timestamp to prevent stale data
+      const timestamp = Date.now()
       const [rsvpResponse, wishResponse, photoResponse] = await Promise.all([
-        fetch(`${API_BASE}/rsvps`),
-        fetch(`${API_BASE}/wishes`),
-        fetch(`${API_BASE}/photos`)
+        fetch(`${API_BASE}/rsvps?_t=${timestamp}`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/wishes?_t=${timestamp}`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/photos?_t=${timestamp}`, { cache: 'no-store' })
       ])
 
       const rsvpData = await rsvpResponse.json()
