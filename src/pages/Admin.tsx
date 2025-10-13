@@ -450,6 +450,7 @@ export default function Admin() {
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
   const [rsvpSearchQuery, setRsvpSearchQuery] = useState('')
   const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status' | 'transport' | 'rooms' | 'meals'>('date')
+  const [activeTab, setActiveTab] = useState<'rsvps' | 'wishes' | 'photos'>('rsvps')
   const rsvpSectionRef = useRef<HTMLDivElement>(null)
   const [stats, setStats] = useState({
     totalRsvps: 0,
@@ -928,20 +929,12 @@ export default function Admin() {
 
   // Handler for clicking wishes stat - switch to wishes tab
   const handleWishesClick = () => {
-    // Find and click the wishes tab
-    const wishesTab = document.querySelector('[value="wishes"]') as HTMLElement
-    if (wishesTab) {
-      wishesTab.click()
-    }
+    setActiveTab('wishes')
   }
 
   // Handler for clicking photos stat - switch to photos tab
   const handlePhotosClick = () => {
-    // Find and click the photos tab
-    const photosTab = document.querySelector('[value="photos"]') as HTMLElement
-    if (photosTab) {
-      photosTab.click()
-    }
+    setActiveTab('photos')
   }
 
   // Handler for clicking rooms stat - scroll to RSVPs and filter by rooms
@@ -1220,7 +1213,7 @@ export default function Admin() {
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="rsvps" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'rsvps' | 'wishes' | 'photos')} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="rsvps">RSVPs</TabsTrigger>
             <TabsTrigger value="wishes">Wishes</TabsTrigger>
