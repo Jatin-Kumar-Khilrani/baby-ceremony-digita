@@ -45,42 +45,92 @@ function calculateMeals(rsvps: RSVP[]) {
   let lunch15 = 0
   let dinner15 = 0
   let breakfast16 = 0
+  let lunch16 = 0
+  let dinner16 = 0
   
   attendingWithTravel.forEach(rsvp => {
     const guestCount = rsvp.guests || 1
     
-    // Arrival on Nov 15
-    if (rsvp.arrivalDateTime) {
-      const arrivalTime = new Date(rsvp.arrivalDateTime)
-      const hour = arrivalTime.getHours()
+    const arrival = rsvp.arrivalDateTime ? new Date(rsvp.arrivalDateTime) : null
+    const departure = rsvp.departureDateTime ? new Date(rsvp.departureDateTime) : null
+    
+    // Define meal service times
+    const breakfastEnd = 10 // 10 AM
+    const lunchEnd = 14 // 2 PM
+    const dinnerEnd = 22 // 10 PM
+    
+    // Nov 14th (day before event)
+    if (arrival) {
+      const arrivalDate = arrival.getDate()
+      const arrivalHour = arrival.getHours()
       
-      // Breakfast 15th: arrivals before 10 AM (breakfast service time)
-      if (hour < 10) {
+      // If arriving on Nov 14
+      if (arrivalDate === 14) {
+        // Dinner on 14th: if arrival before 10 PM
+        if (arrivalHour < dinnerEnd) {
+          // dinner14 += guestCount (not counting 14th for now, but available)
+        }
+      }
+    }
+    
+    // Nov 15th (main event day)
+    // Count everyone staying overnight (arrival on 14th or 15th, departure on 15th evening or later)
+    const staysFor15thBreakfast = arrival && arrival.getDate() <= 15
+    const staysFor15thLunch = arrival && arrival.getDate() <= 15
+    const staysFor15thDinner = arrival && arrival.getDate() <= 15
+    
+    if (staysFor15thBreakfast) {
+      // If arrived on 14th or before 10 AM on 15th
+      if (arrival.getDate() === 14 || 
+          (arrival.getDate() === 15 && arrival.getHours() < breakfastEnd)) {
         breakfast15 += guestCount
       }
-      // Lunch 15th: arrivals before 2 PM (lunch service time)
-      if (hour < 14) {
+    }
+    
+    if (staysFor15thLunch) {
+      // If arrived before 2 PM on 15th or earlier
+      if (arrival.getDate() < 15 || 
+          (arrival.getDate() === 15 && arrival.getHours() < lunchEnd)) {
         lunch15 += guestCount
       }
-      // Dinner 15th: arrivals before 11:30 PM (dinner service continues till 11:30 PM, but counted if arriving before 8 PM service time)
-      if (hour < 20) {
+    }
+    
+    if (staysFor15thDinner) {
+      // If arrived before 10 PM on 15th or earlier, and staying overnight (no departure on 15th)
+      const departsBefore15Evening = departure && departure.getDate() === 15 && departure.getHours() < dinnerEnd
+      if (!departsBefore15Evening && 
+          (arrival.getDate() < 15 || (arrival.getDate() === 15 && arrival.getHours() < dinnerEnd))) {
         dinner15 += guestCount
       }
     }
     
-    // Departure on Nov 16
-    if (rsvp.departureDateTime) {
-      const departureTime = new Date(rsvp.departureDateTime)
-      const hour = departureTime.getHours()
+    // Nov 16th (day after event)
+    if (departure) {
+      const departureDate = departure.getDate()
+      const departureHour = departure.getHours()
       
-      // Breakfast 16th: departures after 8 AM (anyone staying overnight needs breakfast)
-      if (hour >= 8) {
+      // Breakfast on 16th: if departing after 8 AM (or staying longer)
+      if (departureDate > 16 || (departureDate === 16 && departureHour >= 8)) {
         breakfast16 += guestCount
       }
+      
+      // Lunch on 16th: if departing after 2 PM
+      if (departureDate > 16 || (departureDate === 16 && departureHour >= lunchEnd)) {
+        lunch16 += guestCount
+      }
+      
+      // Dinner on 16th: if departing after 10 PM or staying longer
+      if (departureDate > 16 || (departureDate === 16 && departureHour >= dinnerEnd)) {
+        dinner16 += guestCount
+      }
+    } else if (arrival) {
+      // No departure time provided - assume staying until Nov 16 morning (breakfast)
+      // This means they'll need breakfast on Nov 16
+      breakfast16 += guestCount
     }
   })
   
-  return { breakfast15, lunch15, dinner15, breakfast16 }
+  return { breakfast15, lunch15, dinner15, breakfast16, lunch16, dinner16 }
 }
 
 // Helper function to format date/time
@@ -414,7 +464,9 @@ export default function Admin() {
     breakfast15: 0,
     lunch15: 0,
     dinner15: 0,
-    breakfast16: 0
+    breakfast16: 0,
+    lunch16: 0,
+    dinner16: 0
   })
 
   // Check if already authenticated on mount
@@ -1105,26 +1157,61 @@ export default function Admin() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-amber-50 rounded-lg overflow-hidden">
-                    <div className="text-3xl font-bold text-amber-700 break-words">{stats.breakfast15}</div>
-                    <div className="text-sm text-gray-600 mt-1 break-words">Breakfast</div>
-                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 10 AM)</div>
+                <div className="space-y-4">
+                  {/* November 15th Meals */}
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">November 15th (Main Event Day)</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-3 bg-amber-50 rounded-lg overflow-hidden">
+                        <div className="text-2xl font-bold text-amber-700 break-words">{stats.breakfast15}</div>
+                        <div className="text-sm text-gray-600 mt-1 break-words">Breakfast</div>
+                        <div className="text-xs text-gray-500 break-words">Arrivals &lt; 10 AM</div>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 rounded-lg overflow-hidden">
+                        <div className="text-2xl font-bold text-orange-700 break-words">{stats.lunch15}</div>
+                        <div className="text-sm text-gray-600 mt-1 break-words">Lunch</div>
+                        <div className="text-xs text-gray-500 break-words">Arrivals &lt; 2 PM</div>
+                      </div>
+                      <div className="text-center p-3 bg-rose-50 rounded-lg overflow-hidden">
+                        <div className="text-2xl font-bold text-rose-700 break-words">{stats.dinner15}</div>
+                        <div className="text-sm text-gray-600 mt-1 break-words">Dinner</div>
+                        <div className="text-xs text-gray-500 break-words">Arrivals &lt; 10 PM</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg overflow-hidden">
-                    <div className="text-3xl font-bold text-orange-700 break-words">{stats.lunch15}</div>
-                    <div className="text-sm text-gray-600 mt-1 break-words">Lunch</div>
-                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 2 PM)</div>
+
+                  {/* November 16th Meals */}
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">November 16th (Next Day)</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-3 bg-yellow-50 rounded-lg overflow-hidden">
+                        <div className="text-2xl font-bold text-yellow-700 break-words">{stats.breakfast16}</div>
+                        <div className="text-sm text-gray-600 mt-1 break-words">Breakfast</div>
+                        <div className="text-xs text-gray-500 break-words">Departures ≥ 8 AM</div>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 rounded-lg overflow-hidden">
+                        <div className="text-2xl font-bold text-orange-700 break-words">{stats.lunch16 || 0}</div>
+                        <div className="text-sm text-gray-600 mt-1 break-words">Lunch</div>
+                        <div className="text-xs text-gray-500 break-words">Departures ≥ 2 PM</div>
+                      </div>
+                      <div className="text-center p-3 bg-rose-50 rounded-lg overflow-hidden">
+                        <div className="text-2xl font-bold text-rose-700 break-words">{stats.dinner16 || 0}</div>
+                        <div className="text-sm text-gray-600 mt-1 break-words">Dinner</div>
+                        <div className="text-xs text-gray-500 break-words">Departures ≥ 10 PM</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center p-4 bg-rose-50 rounded-lg overflow-hidden">
-                    <div className="text-3xl font-bold text-rose-700 break-words">{stats.dinner15}</div>
-                    <div className="text-sm text-gray-600 mt-1 break-words">Dinner</div>
-                    <div className="text-xs text-gray-500 break-words">Nov 15 (arrivals &lt; 8 PM, service till 11:30 PM)</div>
-                  </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg overflow-hidden">
-                    <div className="text-3xl font-bold text-yellow-700 break-words">{stats.breakfast16}</div>
-                    <div className="text-sm text-gray-600 mt-1 break-words">Breakfast</div>
-                    <div className="text-xs text-gray-500 break-words">Nov 16 (departures ≥ 8 AM)</div>
+
+                  {/* Example Scenario */}
+                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded border border-blue-200">
+                    <strong>Example:</strong> Guest arriving Nov 14 at 10:00 PM and departing Nov 16 at 8:00 AM will be counted for:
+                    <ul className="ml-4 mt-1 list-disc">
+                      <li>Nov 15: Breakfast ✅, Lunch ✅, Dinner ✅</li>
+                      <li>Nov 16: Breakfast ✅</li>
+                    </ul>
+                    <div className="mt-2">
+                      <strong>Note:</strong> If no departure time is provided, guest is assumed to stay until Nov 16 morning (breakfast included).
+                    </div>
                   </div>
                 </div>
               </CardContent>
