@@ -896,6 +896,7 @@ export default function Admin() {
 
   // Handler for clicking transport stat - scroll to RSVPs and filter
   const handleTransportClick = () => {
+    setActiveTab('rsvps')
     setRsvpSortBy('transport')
     // Scroll to RSVP section
     setTimeout(() => {
@@ -905,6 +906,7 @@ export default function Admin() {
 
   // Handler for clicking attending stat - scroll to RSVPs and filter
   const handleAttendingClick = () => {
+    setActiveTab('rsvps')
     setRsvpSortBy('status')
     setTimeout(() => {
       rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -913,6 +915,7 @@ export default function Admin() {
 
   // Handler for clicking guests stat - scroll to RSVPs and filter
   const handleGuestsClick = () => {
+    setActiveTab('rsvps')
     setRsvpSortBy('guests')
     setTimeout(() => {
       rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -921,6 +924,7 @@ export default function Admin() {
 
   // Handler for clicking total RSVPs stat - scroll to RSVPs
   const handleTotalRsvpsClick = () => {
+    setActiveTab('rsvps')
     setRsvpSortBy('date')
     setTimeout(() => {
       rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -930,15 +934,22 @@ export default function Admin() {
   // Handler for clicking wishes stat - switch to wishes tab
   const handleWishesClick = () => {
     setActiveTab('wishes')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
   }
 
   // Handler for clicking photos stat - switch to photos tab
   const handlePhotosClick = () => {
     setActiveTab('photos')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
   }
 
   // Handler for clicking rooms stat - scroll to RSVPs and filter by rooms
   const handleRoomsClick = () => {
+    setActiveTab('rsvps')
     setRsvpSortBy('rooms')
     setTimeout(() => {
       rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -947,6 +958,7 @@ export default function Admin() {
 
   // Handler for clicking meals stat - scroll to RSVPs and filter by meals
   const handleMealsClick = () => {
+    setActiveTab('rsvps')
     setRsvpSortBy('meals')
     setTimeout(() => {
       rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
