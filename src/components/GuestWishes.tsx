@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Heart, PaperPlaneTilt, Star, Sparkle, ArrowClockwise } from '@phosphor-icons/react'
+import { Heart, PaperPlaneTilt, Star, Sparkle, ArrowClockwise, MagnifyingGlass } from '@phosphor-icons/react'
 
 interface Wish {
   id: string
@@ -24,6 +24,7 @@ export default function GuestWishes() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [enhancedMessage, setEnhancedMessage] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [wishData, setWishData] = useState({
     name: '',
     email: '',
@@ -169,6 +170,16 @@ export default function GuestWishes() {
     }
   }
 
+  // Filter wishes based on search query
+  const filteredWishes = wishes.filter(wish => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      wish.name.toLowerCase().includes(query) ||
+      wish.message.toLowerCase().includes(query)
+    )
+  })
+
   return (
     <div className="space-y-6">
       {/* Add Wish Form */}
@@ -283,19 +294,31 @@ export default function GuestWishes() {
 
       {/* Wishes Display */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <h3 className="text-xl font-semibold text-primary">
             Wishes & Blessings ({wishes?.length || 0})
           </h3>
-          <Badge variant="secondary" className="text-sm">
-            <Star size={14} className="mr-1" />
-            Memories Being Made
-          </Badge>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search wishes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full sm:w-64"
+              />
+            </div>
+            <Badge variant="secondary" className="text-sm whitespace-nowrap">
+              <Star size={14} className="mr-1" />
+              {filteredWishes.length} {filteredWishes.length === 1 ? 'Wish' : 'Wishes'}
+            </Badge>
+          </div>
         </div>
 
-        {wishes && wishes.length > 0 ? (
+        {filteredWishes && filteredWishes.length > 0 ? (
           <div className="space-y-4">
-            {wishes.slice().reverse().map((wish, index) => (
+            {filteredWishes.slice().reverse().map((wish, index) => (
               <Card key={wish.id || `wish-${index}`} className="bg-gradient-to-r from-muted/30 to-accent/10 border-accent/20">
                 <CardContent className="pt-4">
                   <div className="flex items-start justify-between mb-3">
@@ -319,11 +342,24 @@ export default function GuestWishes() {
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Heart size={48} className="text-muted-foreground/50 mb-4" />
               <h4 className="text-lg font-medium text-muted-foreground mb-2">
-                No wishes yet
+                {searchQuery ? 'No wishes found' : 'No wishes yet'}
               </h4>
               <p className="text-sm text-muted-foreground max-w-sm">
-                Be the first to share your blessings and wishes for baby Parv's wonderful journey ahead!
+                {searchQuery 
+                  ? `No wishes match "${searchQuery}". Try a different search term.`
+                  : "Be the first to share your blessings and wishes for baby Parv's wonderful journey ahead!"
+                }
               </p>
+              {searchQuery && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setSearchQuery('')}
+                  className="mt-4"
+                >
+                  Clear Search
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}

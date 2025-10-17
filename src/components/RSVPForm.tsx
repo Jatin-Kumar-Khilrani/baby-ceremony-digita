@@ -310,9 +310,36 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     
     if (!confirm('Are you sure you want to delete your RSVP?')) return
     
+    // CRITICAL FIX: Ensure we have the complete RSVPs array before deleting
+    if (!rsvps || !Array.isArray(rsvps) || rsvps.length === 0) {
+      toast.error('Unable to delete RSVP. Please refresh the page and try again.')
+      console.error('RSVPs array is invalid:', rsvps)
+      return
+    }
+
+    // Verify the RSVP being deleted exists in the current array
+    const existsInArray = rsvps.some(r => r.id === rsvp.id)
+    if (!existsInArray) {
+      toast.error('RSVP not found in current data. Please refresh and try again.')
+      console.error('Deleting RSVP not found in array:', rsvp.id)
+      return
+    }
+    
     // Save to backend
     try {
-      const updatedRsvps = (rsvps || []).filter(r => r.id !== rsvp.id)
+      const updatedRsvps = rsvps.filter(r => r.id !== rsvp.id)
+      
+      // Verify we're only removing one RSVP
+      if (updatedRsvps.length !== rsvps.length - 1) {
+        toast.error('Data integrity error. Please refresh and try again.')
+        console.error('Array length mismatch during delete:', {
+          original: rsvps.length,
+          updated: updatedRsvps.length,
+          expected: rsvps.length - 1
+        })
+        return
+      }
+
       const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -360,7 +387,56 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       return
     }
 
+    // Event date range validation - November 15th, 2025 is the main event
+    const eventDate = new Date('2025-11-15')
+    const eventDateStr = '15th November 2025'
+    
+    if (formData.attending === 'yes') {
+      // Validate arrival date (should be on or before event date)
+      if (formData.arrivalDateTime) {
+        const arrivalDate = new Date(formData.arrivalDateTime)
+        if (arrivalDate > eventDate) {
+          toast.error(`Arrival date cannot be after the event date (${eventDateStr})`)
+          return
+        }
+      }
+      
+      // Validate departure date (should be on or after event date)
+      if (formData.departureDateTime) {
+        const departureDate = new Date(formData.departureDateTime)
+        if (departureDate < eventDate) {
+          toast.error(`Departure date cannot be before the event date (${eventDateStr})`)
+          return
+        }
+      }
+      
+      // Validate arrival is before departure
+      if (formData.arrivalDateTime && formData.departureDateTime) {
+        const arrivalDate = new Date(formData.arrivalDateTime)
+        const departureDate = new Date(formData.departureDateTime)
+        if (arrivalDate >= departureDate) {
+          toast.error('Arrival date must be before departure date')
+          return
+        }
+      }
+    }
+
     if (editingRsvp) {
+      // CRITICAL FIX: Ensure we have the complete RSVPs array before updating
+      if (!rsvps || !Array.isArray(rsvps) || rsvps.length === 0) {
+        toast.error('Unable to update RSVP. Please refresh the page and try again.')
+        console.error('RSVPs array is invalid:', rsvps)
+        return
+      }
+
+      // Verify the RSVP being edited exists in the current array
+      const existsInArray = rsvps.some(r => r.id === editingRsvp.id)
+      if (!existsInArray) {
+        toast.error('RSVP not found in current data. Please refresh and try again.')
+        console.error('Editing RSVP not found in array:', editingRsvp.id)
+        return
+      }
+
       // Update existing RSVP
       const updatedRSVP: RSVP = {
         ...editingRsvp,
@@ -377,12 +453,25 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         transportMode: formData.transportMode || undefined
       }
 
+      // Create the updated array with all RSVPs preserved
+      const updatedRsvpsArray = rsvps.map(r => r.id === editingRsvp.id ? updatedRSVP : r)
+      
+      // Verify no data loss before sending to backend
+      if (updatedRsvpsArray.length !== rsvps.length) {
+        toast.error('Data integrity error. Please refresh and try again.')
+        console.error('Array length mismatch:', {
+          original: rsvps.length,
+          updated: updatedRsvpsArray.length
+        })
+        return
+      }
+
       // Save to backend
       try {
         const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(rsvps?.map(r => r.id === editingRsvp.id ? updatedRSVP : r) || [])
+          body: JSON.stringify(updatedRsvpsArray)
         })
 
         if (!response.ok) {
@@ -823,7 +912,12 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
                       value={formData.arrivalDateTime}
                       onChange={(e) => setFormData(prev => ({ ...prev, arrivalDateTime: e.target.value }))}
                       placeholder="When will you arrive?"
+                      max="2025-11-15T23:59"
+                      title="Arrival must be on or before the event date (15th November 2025)"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be on or before 15th November 2025 (Event Date)
+                    </p>
                   </div>
                   
                   <div className="space-y-2">
@@ -834,7 +928,12 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
                       value={formData.departureDateTime}
                       onChange={(e) => setFormData(prev => ({ ...prev, departureDateTime: e.target.value }))}
                       placeholder="When will you depart?"
+                      min="2025-11-15T00:00"
+                      title="Departure must be on or after the event date (15th November 2025)"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be on or after 15th November 2025 (Event Date)
+                    </p>
                   </div>
                 </div>
 

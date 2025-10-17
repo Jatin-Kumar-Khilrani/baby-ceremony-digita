@@ -450,8 +450,12 @@ export default function Admin() {
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
   const [rsvpSearchQuery, setRsvpSearchQuery] = useState('')
   const [rsvpSortBy, setRsvpSortBy] = useState<'name' | 'date' | 'guests' | 'status' | 'transport' | 'rooms' | 'meals'>('date')
-  const [activeTab, setActiveTab] = useState<'rsvps' | 'wishes' | 'photos'>('rsvps')
+  const [wishSearchQuery, setWishSearchQuery] = useState('')
+  const [wishSortBy, setWishSortBy] = useState<'name' | 'date' | 'message'>('date')
+  const [activeTab, setActiveTab] = useState<'rsvps' | 'wishes' | 'photos' | 'backups'>('rsvps')
   const rsvpSectionRef = useRef<HTMLDivElement>(null)
+  const [backups, setBackups] = useState<any[]>([])
+  const [loadingBackups, setLoadingBackups] = useState(false)
   const [stats, setStats] = useState({
     totalRsvps: 0,
     attending: 0,
@@ -606,6 +610,147 @@ export default function Admin() {
     
     return cleaned
   }
+
+  // Backup & Restore Functions
+  const getAdminKey = () => {
+    return sessionStorage.getItem('adminKey') || 'your-secret-admin-key-change-this'
+  }
+
+  const loadBackups = async () => {
+    setLoadingBackups(true)
+    try {
+      const response = await fetch(`${API_BASE}/backup`, {
+        headers: {
+          'x-admin-key': getAdminKey()
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setBackups(data)
+        toast.success(`Loaded ${data.length} backup(s)`)
+      } else {
+        toast.error('Failed to load backups')
+      }
+    } catch (error) {
+      console.error('Error loading backups:', error)
+      toast.error('Error loading backups')
+    } finally {
+      setLoadingBackups(false)
+    }
+  }
+
+  const createBackup = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/backup?action=create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': getAdminKey()
+        }
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(`Backup created: ${result.rsvpCount} RSVPs backed up`)
+        loadBackups() // Refresh list
+      } else {
+        toast.error('Failed to create backup')
+      }
+    } catch (error) {
+      console.error('Error creating backup:', error)
+      toast.error('Error creating backup')
+    }
+  }
+
+  const restoreBackup = async (backupName: string) => {
+    if (!confirm(`Are you sure you want to restore from this backup?\n\n⚠️ This will REPLACE all current RSVP data!\n\nBackup: ${backupName}`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/backup?action=restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': getAdminKey()
+        },
+        body: JSON.stringify({ backupName })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        toast.success(`Restored ${result.rsvpCount} RSVPs from backup`)
+        
+        // Reload RSVPs
+        const rsvpResponse = await fetch(`${API_BASE}/rsvps?_t=${Date.now()}`)
+        if (rsvpResponse.ok) {
+          const rsvpsData = await rsvpResponse.json()
+          setRsvps(Array.isArray(rsvpsData) ? rsvpsData : [])
+        }
+      } else {
+        toast.error('Failed to restore backup')
+      }
+    } catch (error) {
+      console.error('Error restoring backup:', error)
+      toast.error('Error restoring backup')
+    }
+  }
+
+  const downloadBackup = async (backupName: string) => {
+    try {
+      // For downloading, we can use the Azure Storage direct link
+      // Or fetch through API and download
+      toast.info('Download feature - use Azure Portal for now')
+      // TODO: Implement direct download
+    } catch (error) {
+      console.error('Error downloading backup:', error)
+      toast.error('Error downloading backup')
+    }
+  }
+
+  const deleteBackup = async (backupName: string) => {
+    if (!confirm(`Are you sure you want to delete this backup?\n\n${backupName}`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/backup?action=delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': getAdminKey()
+        },
+        body: JSON.stringify({ backupName })
+      })
+      
+      if (response.ok) {
+        toast.success('Backup deleted')
+        loadBackups() // Refresh list
+      } else {
+        toast.error('Failed to delete backup')
+      }
+    } catch (error) {
+      console.error('Error deleting backup:', error)
+      toast.error('Error deleting backup')
+    }
+  }
+
+  const formatBackupDate = (timestamp: string) => {
+    if (!timestamp) return 'Unknown date'
+    const date = new Date(timestamp)
+    return date.toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    })
+  }
+
+  // Load backups when switching to backups tab
+  useEffect(() => {
+    if (activeTab === 'backups' && backups.length === 0) {
+      loadBackups()
+    }
+  }, [activeTab])
 
   // CRUD Operations for RSVPs
   const deleteRSVP = async (id: string) => {
@@ -918,7 +1063,37 @@ export default function Admin() {
     return filtered
   }
 
+  const getFilteredAndSortedWishes = () => {
+    let filtered = [...wishes]
+    
+    // Apply search filter
+    if (wishSearchQuery.trim()) {
+      const query = wishSearchQuery.toLowerCase()
+      filtered = filtered.filter(wish => 
+        wish.name.toLowerCase().includes(query) ||
+        wish.message.toLowerCase().includes(query)
+      )
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (wishSortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'date':
+          return b.timestamp - a.timestamp // Most recent first
+        case 'message':
+          return a.message.localeCompare(b.message)
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }
+
   const filteredRsvps = getFilteredAndSortedRsvps()
+  const filteredWishes = getFilteredAndSortedWishes()
 
   // Handler for clicking transport stat - scroll to RSVPs and filter
   const handleTransportClick = () => {
@@ -1282,10 +1457,11 @@ export default function Admin() {
             }} 
             className="space-y-4"
           >
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="rsvps">RSVPs</TabsTrigger>
               <TabsTrigger value="wishes">Wishes</TabsTrigger>
               <TabsTrigger value="photos">Photos</TabsTrigger>
+              <TabsTrigger value="backups">Backups</TabsTrigger>
             </TabsList>
 
             {/* RSVPs Tab */}
@@ -1578,6 +1754,49 @@ export default function Admin() {
                   <p className="text-center text-gray-500 py-8">No wishes yet</p>
                 ) : (
                   <>
+                    {/* Search and Sort Controls */}
+                    <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Search Input */}
+                        <div className="relative">
+                          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input
+                            type="text"
+                            placeholder="Search by name or message..."
+                            value={wishSearchQuery}
+                            onChange={(e) => setWishSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        
+                        {/* Sort Dropdown */}
+                        <div className="flex items-center gap-2">
+                          <SortAscending className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <Select 
+                            value={wishSortBy} 
+                            onValueChange={(value: any) => setWishSortBy(value)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Sort by..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="date">📅 Most Recent</SelectItem>
+                              <SelectItem value="name">👤 Name (A-Z)</SelectItem>
+                              <SelectItem value="message">💬 Message (A-Z)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {/* Results Counter */}
+                      {wishSearchQuery && (
+                        <div className="text-sm text-gray-600 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          Found {filteredWishes.length} of {wishes.length} wishes
+                        </div>
+                      )}
+                    </div>
+
                     {/* Select All Row */}
                     <div className="flex items-center gap-2 mb-4 pb-3 border-b">
                       <Checkbox
@@ -1591,7 +1810,7 @@ export default function Admin() {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {wishes.map((wish, index) => (
+                      {filteredWishes.map((wish, index) => (
                         <div key={wish.id || `wish-${index}`} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                           <div className="flex items-start gap-3">
                             <Checkbox
@@ -1718,6 +1937,112 @@ export default function Admin() {
                     </div>
                   </>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Backups Tab */}
+          <TabsContent value="backups">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Backup & Restore</CardTitle>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={loadBackups}
+                      variant="outline"
+                      size="sm"
+                      disabled={loadingBackups}
+                    >
+                      {loadingBackups ? 'Loading...' : 'Refresh'}
+                    </Button>
+                    <Button 
+                      onClick={createBackup}
+                      size="sm"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Create Backup Now
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Info Banner */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">📦 Automated Daily Backups</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Backups are created automatically every day at 2:00 AM UTC</li>
+                      <li>• Backups are kept for 30 days, then automatically deleted</li>
+                      <li>• You can create manual backups anytime using the button above</li>
+                      <li>• Restoring a backup will replace all current RSVP data</li>
+                    </ul>
+                  </div>
+
+                  {/* Backups List */}
+                  {loadingBackups ? (
+                    <div className="text-center py-8 text-gray-500">Loading backups...</div>
+                  ) : backups.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No backups found. Create your first backup using the button above.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-gray-700 mb-3">
+                        Available Backups ({backups.length})
+                      </h4>
+                      {backups.map((backup) => (
+                        <div 
+                          key={backup.name} 
+                          className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-gray-900">
+                                  {formatBackupDate(backup.timestamp)}
+                                </span>
+                                <Badge variant={backup.createdBy === 'scheduled-backup' ? 'default' : 'secondary'}>
+                                  {backup.createdBy === 'scheduled-backup' ? 'Auto' : 'Manual'}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <div>📊 RSVPs: <span className="font-medium">{backup.rsvpCount}</span></div>
+                                <div className="text-xs text-gray-500">
+                                  {backup.name}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => downloadBackup(backup.name)}
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => restoreBackup(backup.name)}
+                              >
+                                Restore
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteBackup(backup.name)}
+                              >
+                                <Trash className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

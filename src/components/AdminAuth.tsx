@@ -60,6 +60,9 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
           email: email
         }))
         
+        // Store admin key for API requests
+        sessionStorage.setItem('adminKey', 'baby-ceremony-admin-2025-secure-key-change-this')
+        
         onAuthenticated()
       } else {
         toast.error('Incorrect PIN. Please try again.')

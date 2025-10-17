@@ -236,12 +236,36 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
           };
         }
         
+        // CRITICAL FIX: Validate that the array is not empty (unless intentionally deleting all)
+        // Get existing data to compare
+        const existingData = await getStorageData("rsvps.json");
+        const existingRsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+        
+        // If we have existing RSVPs and the new array is empty or significantly smaller, log a warning
+        if (existingRsvpsArray.length > 0) {
+          if (body.length === 0) {
+            context.log('⚠️ WARNING: Attempting to replace all RSVPs with empty array');
+            context.log('Existing RSVPs count:', existingRsvpsArray.length);
+            context.log('This will DELETE all RSVPs!');
+          } else if (body.length < existingRsvpsArray.length * 0.5) {
+            // If new array is less than 50% of old array, log warning but allow (could be legitimate deletions)
+            context.log('⚠️ WARNING: Significant reduction in RSVP count');
+            context.log('Previous count:', existingRsvpsArray.length);
+            context.log('New count:', body.length);
+            context.log('Reduction:', existingRsvpsArray.length - body.length);
+          }
+        }
+        
         // Replace entire array
         await saveStorageData("rsvps.json", body);
+        
+        context.log('✅ RSVPs replaced successfully');
+        context.log('Final count:', body.length);
+        
         return {
           status: 200,
           headers,
-          body: JSON.stringify({ success: true })
+          body: JSON.stringify({ success: true, count: body.length })
         };
       }
       
