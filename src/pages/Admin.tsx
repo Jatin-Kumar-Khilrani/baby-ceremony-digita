@@ -2393,7 +2393,8 @@ export default function Admin() {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-semibold text-blue-900 mb-2">📦 Comprehensive Backup System</h4>
                     <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Backups include <strong>RSVPs, Wishes, and Photos</strong></li>
+                      <li>• Backups include <strong>RSVPs, Wishes (with audio), and Photos</strong></li>
+                      <li>• Audio wishes are backed up with full audio file references</li>
                       <li>• Automated backups run daily at 2:00 AM UTC</li>
                       <li>• Backups are kept for 30 days, then automatically deleted</li>
                       <li>• You can restore all data together or individually</li>
@@ -2457,7 +2458,7 @@ export default function Admin() {
                             </div>
 
                             {/* Data Breakdown */}
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                               <div className="bg-purple-50 border border-purple-200 rounded p-2 text-center">
                                 <div className="text-xs text-purple-600 font-medium">RSVPs</div>
                                 <div className="text-lg font-bold text-purple-900">{backup.rsvps || 0}</div>
@@ -2465,6 +2466,10 @@ export default function Admin() {
                               <div className="bg-pink-50 border border-pink-200 rounded p-2 text-center">
                                 <div className="text-xs text-pink-600 font-medium">Wishes</div>
                                 <div className="text-lg font-bold text-pink-900">{backup.wishes || 0}</div>
+                              </div>
+                              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
+                                <div className="text-xs text-blue-600 font-medium">🎙️ Audio</div>
+                                <div className="text-lg font-bold text-blue-900">{backup.audioWishes || 0}</div>
                               </div>
                               <div className="bg-indigo-50 border border-indigo-200 rounded p-2 text-center">
                                 <div className="text-xs text-indigo-600 font-medium">Photos</div>
@@ -2475,6 +2480,9 @@ export default function Admin() {
                             {/* Total Count */}
                             <div className="text-sm text-gray-600 text-center py-1 bg-gray-100 rounded">
                               <strong>Total:</strong> {backup.totalItems || (backup.rsvps || 0) + (backup.wishes || 0) + (backup.photos || 0)} items
+                              {backup.audioWishes > 0 && (
+                                <span className="ml-2 text-blue-600">• {backup.audioWishes} with audio</span>
+                              )}
                             </div>
 
                             {/* Action Buttons */}
@@ -2567,7 +2575,7 @@ export default function Admin() {
 
               {/* Summary */}
               <div className="bg-gray-100 p-4 rounded-lg">
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold text-purple-600">
                       {previewBackup.data?.rsvps?.length || 0}
@@ -2579,6 +2587,12 @@ export default function Admin() {
                       {previewBackup.data?.wishes?.length || 0}
                     </div>
                     <div className="text-sm text-gray-600">Wishes</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {previewBackup.data?.wishes?.filter((w: any) => w.hasAudio || w.audioUrl)?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">🎙️ Audio Wishes</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-indigo-600">
@@ -2631,20 +2645,39 @@ export default function Admin() {
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {previewBackup.data.wishes.map((wish: any, idx: number) => (
                       <div key={idx} className="border rounded p-3 bg-pink-50">
-                        <div className="flex items-center gap-2">
-                          <div className="font-medium">{wish.name}</div>
-                          {wish.hasAudio && (
-                            <Badge variant="secondary" className="text-xs">
-                              🎙️
-                            </Badge>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium">{wish.name}</div>
+                            {(wish.hasAudio || wish.audioUrl) && (
+                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                🎙️ Audio
+                              </Badge>
+                            )}
+                          </div>
+                          {wish.audioDuration && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              {Math.floor(wish.audioDuration / 60)}:{(wish.audioDuration % 60).toString().padStart(2, '0')}
+                            </div>
                           )}
                         </div>
                         {wish.message && (
                           <div className="text-sm text-gray-600 mt-1">{wish.message}</div>
                         )}
-                        {wish.hasAudio && (
-                          <div className="text-xs text-purple-600 mt-1">
-                            Audio: {wish.audioDuration ? `${Math.floor(wish.audioDuration / 60)}:${(wish.audioDuration % 60).toString().padStart(2, '0')}` : 'Available'}
+                        {(wish.hasAudio || wish.audioUrl) && (
+                          <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-pink-200">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-blue-600">Audio Details:</span>
+                              {wish.audioUrl && (
+                                <span className="truncate max-w-xs" title={wish.audioUrl}>
+                                  {wish.audioUrl.split('/').pop() || 'audio-file.wav'}
+                                </span>
+                              )}
+                            </div>
+                            {wish.audioDuration && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                Duration: {wish.audioDuration}s
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

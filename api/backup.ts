@@ -542,7 +542,7 @@ export async function backup(request: HttpRequest, context: InvocationContext): 
       });
 
       // Calculate totals for each backup group
-      backups.forEach(backup => {
+      for (const backup of backups) {
         backup.totalItems = backup.files.reduce((sum: number, file: any) => {
           const count = parseInt(file.itemCount);
           return sum + (isNaN(count) ? 0 : count);
@@ -551,7 +551,27 @@ export async function backup(request: HttpRequest, context: InvocationContext): 
         backup.rsvps = backup.files.find((f: any) => f.dataType === 'rsvps')?.itemCount || 0;
         backup.wishes = backup.files.find((f: any) => f.dataType === 'wishes')?.itemCount || 0;
         backup.photos = backup.files.find((f: any) => f.dataType === 'photos')?.itemCount || 0;
-      });
+
+        // Calculate audio wishes count by reading the wishes backup
+        const wishesFile = backup.files.find((f: any) => f.dataType === 'wishes');
+        if (wishesFile) {
+          try {
+            const blobClient = backupContainer.getBlobClient(wishesFile.name);
+            const downloadResponse = await blobClient.download();
+            const downloaded = await streamToBuffer(downloadResponse.readableStreamBody!);
+            const wishesData = JSON.parse(downloaded.toString());
+            
+            // Count wishes with audio (hasAudio or audioUrl present)
+            const audioCount = wishesData.filter((w: any) => w.hasAudio || w.audioUrl).length;
+            backup.audioWishes = audioCount;
+          } catch (error) {
+            context.warn(`Could not read wishes backup for audio count: ${wishesFile.name}`, error);
+            backup.audioWishes = 0;
+          }
+        } else {
+          backup.audioWishes = 0;
+        }
+      }
 
       return {
         status: 200,

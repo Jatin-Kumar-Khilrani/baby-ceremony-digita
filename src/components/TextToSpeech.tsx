@@ -26,6 +26,7 @@ export function TextToSpeech({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVoiceType, setSelectedVoiceType] = useState<'male' | 'female' | 'auto'>('auto');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [isManuallyStopped, setIsManuallyStopped] = useState(false);
   const { setIsTTSPlaying } = useAudio();
 
   // Load available voices
@@ -34,9 +35,9 @@ export function TextToSpeech({
       const voices = window.speechSynthesis.getVoices();
       setAvailableVoices(voices);
       
-      // Log available voices for debugging
+      // Log voice count (not all voices to avoid console clutter)
       if (voices.length > 0) {
-        console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`).join(', '));
+        console.log(`Loaded ${voices.length} TTS voices`);
       }
     };
 
@@ -99,11 +100,16 @@ export function TextToSpeech({
 
     // Stop if already speaking
     if (isSpeaking) {
+      setIsManuallyStopped(true); // Mark as manually stopped
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      setIsTTSPlaying(false);
       return;
     }
 
+    // Reset manual stop flag when starting new speech
+    setIsManuallyStopped(false);
+    
     // Cancel any pending speech
     window.speechSynthesis.cancel();
 
@@ -137,23 +143,36 @@ export function TextToSpeech({
     }
 
     // Split long text into chunks (TTS fails on very long text)
+    // Use Array.from() to handle emojis correctly (multi-byte Unicode characters)
     const maxLength = 500; // Characters per chunk
     const textChunks: string[] = [];
     let currentChunk = '';
     
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    // Better sentence splitting that preserves emojis
+    // Split by periods, exclamation marks, or question marks followed by space or end
+    const sentences = text.match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g) || [text];
     
     for (const sentence of sentences) {
-      if ((currentChunk + sentence).length > maxLength) {
-        if (currentChunk) textChunks.push(currentChunk.trim());
+      const combinedLength = Array.from(currentChunk + sentence).length; // Count actual characters including emojis
+      
+      if (combinedLength > maxLength && currentChunk) {
+        // Current chunk is full, save it and start new chunk
+        textChunks.push(currentChunk.trim());
         currentChunk = sentence;
       } else {
         currentChunk += sentence;
       }
     }
-    if (currentChunk) textChunks.push(currentChunk.trim());
+    
+    // Add the last chunk if it has content
+    if (currentChunk.trim()) {
+      textChunks.push(currentChunk.trim());
+    }
 
-    console.log(`Speaking ${textChunks.length} chunks:`, textChunks);
+    // Log only if multiple chunks (reduce console clutter)
+    if (textChunks.length > 1) {
+      console.log(`Text split into ${textChunks.length} chunks for TTS`);
+    }
 
     // Function to speak a chunk
     let currentChunkIndex = 0;
@@ -188,10 +207,12 @@ export function TextToSpeech({
       }
 
       // Set pitch based on gender
-      utterance.pitch = genderPreference === 'female' ? 1.2 : 0.8;
+      utterance.pitch = genderPreference === 'female' ? 1.1 : 0.9;
 
       // Try to find a suitable voice matching gender preference
       const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+      
+      console.log(`Looking for ${genderPreference} voice in ${voices.length} available voices`);
       
       // **PRIORITY 1: Indian voices (hi-IN, en-IN)**
       const indianVoices = voices.filter(voice => 
@@ -217,16 +238,29 @@ export function TextToSpeech({
                  voiceNameLower.includes('heera') || voiceNameLower.includes('nisha') ||
                  voiceNameLower.includes('lekha') || voiceNameLower.includes('kalpana') ||
                  voiceNameLower.includes('samantha') || voiceNameLower.includes('victoria') ||
-                 voiceNameLower.includes('zira');
+                 voiceNameLower.includes('zira') || voiceNameLower.includes('swara');
         } else {
           return voiceNameLower.includes('male') || voiceNameLower.includes('man') ||
                  voiceNameLower.includes('rishi') || voiceNameLower.includes('sharad') ||
                  voiceNameLower.includes('hemant') || voiceNameLower.includes('prabhat') ||
-                 voiceNameLower.includes('david') || voiceNameLower.includes('mark');
+                 voiceNameLower.includes('david') || voiceNameLower.includes('mark') ||
+                 voiceNameLower.includes('james') || voiceNameLower.includes('george');
         }
       });
 
-      // **FALLBACK: Any Indian voice or language-matched voice**
+      // **FALLBACK: Try gender-specific voices from any language**
+      if (!preferredVoice) {
+        preferredVoice = voices.find(voice => {
+          const voiceNameLower = voice.name.toLowerCase();
+          if (genderPreference === 'female') {
+            return voiceNameLower.includes('female') || voiceNameLower.includes('woman');
+          } else {
+            return voiceNameLower.includes('male') || voiceNameLower.includes('man');
+          }
+        });
+      }
+      
+      // **FALLBACK 2: Any Indian voice or language-matched voice**
       if (!preferredVoice && voicePool.length > 0) {
         preferredVoice = voicePool[0];
       }
@@ -238,6 +272,9 @@ export function TextToSpeech({
       
       if (preferredVoice) {
         utterance.voice = preferredVoice;
+        console.log(`Selected voice: ${preferredVoice.name} (${preferredVoice.lang}) for ${genderPreference}`);
+      } else {
+        console.log('No preferred voice found, using default');
       }
 
       utterance.onstart = () => {
@@ -246,27 +283,44 @@ export function TextToSpeech({
           setIsSpeaking(true);
           setIsLoading(false);
           setIsTTSPlaying(true); // Notify music player to duck
-          console.log(`Speech started - chunk ${chunkIndex + 1}/${textChunks.length}`);
-        } else {
-          console.log(`Speaking chunk ${chunkIndex + 1}/${textChunks.length}`);
+          if (textChunks.length > 1) {
+            console.log(`TTS: Playing ${textChunks.length} chunks`);
+          }
         }
       };
 
       utterance.onend = () => {
         clearTimeout(timeoutId);
-        console.log(`Chunk ${chunkIndex + 1}/${textChunks.length} completed`);
+        // Only log completion on last chunk
+        if (chunkIndex === textChunks.length - 1) {
+          console.log('TTS: Completed');
+        }
         // Speak next chunk
         speakChunk(chunkIndex + 1);
       };
 
       utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
         clearTimeout(timeoutId);
         setIsSpeaking(false);
         setIsLoading(false);
         setIsTTSPlaying(false); // Restore music on error
         
-        // Provide specific error messages
+        // Don't show error toast if user manually stopped
+        if (isManuallyStopped) {
+          console.log('Speech stopped by user');
+          return;
+        }
+        
+        // Check if this is a user-initiated stop (not a real error)
+        if (event.error === 'canceled' || event.error === 'interrupted') {
+          console.log('Speech stopped (not an error)');
+          return;
+        }
+        
+        // Log actual errors
+        console.error('Speech synthesis error:', event.error);
+        
+        // Provide specific error messages for real errors
         if (event.error === 'synthesis-failed') {
           toast.error('Speech failed. Try selecting a different voice or using shorter text.', {
             description: 'Tip: Try the manual voice selector below'
@@ -295,7 +349,10 @@ export function TextToSpeech({
 
       try {
         window.speechSynthesis.speak(utterance);
-        console.log('Speaking chunk with voice:', preferredVoice?.name || 'default', 'language:', voiceLang);
+        // Only log on first chunk to reduce console clutter
+        if (chunkIndex === 0) {
+          console.log('TTS started with voice:', preferredVoice?.name || 'default', `(${voiceLang})`);
+        }
       } catch (error) {
         console.error('Failed to speak chunk:', error);
         clearTimeout(timeoutId);

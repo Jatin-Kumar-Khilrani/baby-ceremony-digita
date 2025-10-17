@@ -551,30 +551,30 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
 
         setRSVPs(prev => [...(prev || []), newRSVP])
         
-        toast.success(
-          formData.attending === 'yes' 
-            ? 'Thank you for your RSVP! We look forward to seeing you!' 
-            : 'Thank you for letting us know. We\'ll miss you!',
-          { duration: 5000 }
-        )
+        // Single consolidated success message
+        const successMessage = formData.attending === 'yes' 
+          ? '✅ RSVP submitted! We look forward to seeing you!' 
+          : '✅ RSVP submitted! Thank you for letting us know.';
         
-        // Auto-join WhatsApp group if attending
+        const editInfo = '\n\nTo edit/delete later, search for your RSVP below and we\'ll send you a PIN.';
+        
+        toast.success(successMessage + editInfo, { 
+          duration: 6000,
+          style: { maxWidth: '500px' }
+        })
+        
+        // Auto-join WhatsApp group if attending (open after short delay)
         if (formData.attending === 'yes' && formData.phone) {
-          // Show joining message
-          toast.info('Joining WhatsApp group "Welcome Parv"...', { duration: 3000 })
-          
-          // Open WhatsApp group invite link
           setTimeout(() => {
             const whatsappGroupUrl = 'https://chat.whatsapp.com/BQfC4vHsXcK3E1yBd58l5H'
             window.open(whatsappGroupUrl, '_blank')
-          }, 1500)
+            // Show a subtle info toast after opening WhatsApp
+            toast.info('Opening WhatsApp group "Welcome Parv"...', { 
+              duration: 3000,
+              style: { maxWidth: '400px' }
+            })
+          }, 2000)
         }
-        
-        // PIN will be sent only when user searches to edit/delete
-        toast.info(
-          '✅ RSVP submitted! To edit/delete later, search for your RSVP below and we\'ll send you a PIN.',
-          { duration: 8000 }
-        )
       } catch (error) {
         console.error('Error saving RSVP:', error)
         toast.error('Failed to save RSVP. Please try again.')
