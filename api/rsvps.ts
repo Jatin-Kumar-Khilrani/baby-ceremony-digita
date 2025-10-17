@@ -73,7 +73,7 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
   // Enable CORS
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json",
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -290,6 +290,45 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
         headers,
         body: JSON.stringify({ success: true })
       };
+    } else if (request.method === "PUT") {
+      // Update a single RSVP by ID
+      const body: any = await request.json();
+      
+      if (!body || !body.id) {
+        return {
+          status: 400,
+          headers,
+          body: JSON.stringify({ error: "RSVP ID is required for updates" })
+        };
+      }
+      
+      // Get existing RSVPs
+      const existingData = await getStorageData("rsvps.json");
+      const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+      
+      // Find and update the specific RSVP
+      const index = rsvpsArray.findIndex((r: any) => r.id === body.id);
+      
+      if (index === -1) {
+        return {
+          status: 404,
+          headers,
+          body: JSON.stringify({ error: "RSVP not found with the provided ID" })
+        };
+      }
+      
+      // Update the RSVP
+      rsvpsArray[index] = body;
+      
+      await saveStorageData("rsvps.json", rsvpsArray);
+      
+      context.log('✅ RSVP updated successfully:', body.id);
+      
+      return {
+        status: 200,
+        headers,
+        body: JSON.stringify({ success: true, rsvp: body })
+      };
     } else {
       return {
         status: 405,
@@ -308,7 +347,7 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
 }
 
 app.http('rsvps', {
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
   authLevel: 'anonymous',
   handler: rsvps
 });

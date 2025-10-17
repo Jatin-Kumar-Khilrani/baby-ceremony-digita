@@ -136,8 +136,8 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       // Check if the Google email matches the found RSVP email
       if (foundRsvp && user.email.toLowerCase() === foundRsvp.email.toLowerCase()) {
         toast.success(`Welcome ${user.name}! Your RSVP is loaded below for editing.`)
-        // Automatically load the form for editing
-        handleEdit(foundRsvp)
+        // Automatically load the form for editing - skip verification since Google auth just succeeded
+        handleEdit(foundRsvp, true)
       } else if (foundRsvp) {
         toast.error('This Google account email does not match the RSVP email.')
         setGoogleUser(null)
@@ -198,7 +198,14 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
             setIsPinVerified(false)
             setVerifyPin('')
             setShowPinOption(false)
-            toast.success('✅ RSVP found! Please verify using Google Sign-In or request a PIN.')
+            
+            // Show different message if bypass is enabled
+            if (normalizedRsvp.allowDuplicateSubmission) {
+              toast.success('✅ RSVP found! Admin bypass enabled - you can edit directly without verification.')
+            } else {
+              toast.success('✅ RSVP found! Please verify using Google Sign-In or request a PIN.')
+            }
+            
             setIsSearching(false)
             return
           }
@@ -229,7 +236,12 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         setVerifyPin('')
         setShowPinOption(false) // Reset PIN option
         
-        toast.success('✅ RSVP found! Please verify using Google Sign-In or request a PIN.')
+        // Show different message if bypass is enabled
+        if (normalizedRsvp.allowDuplicateSubmission) {
+          toast.success('✅ RSVP found! Admin bypass enabled - you can edit directly without verification.')
+        } else {
+          toast.success('✅ RSVP found! Please verify using Google Sign-In or request a PIN.')
+        }
       } else if (response.status === 404) {
         setFoundRsvp(null)
         // Pre-fill the email in the form for convenience
@@ -266,12 +278,14 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     }
   }
 
-  const handleEdit = (rsvp: RSVP) => {
-    // Check if user is verified (either via Google OAuth or PIN)
+  const handleEdit = (rsvp: RSVP, skipVerification: boolean = false) => {
+    // Check if user is verified (either via Google OAuth, PIN, or admin bypass enabled)
     const isGoogleVerified = googleUser && googleUser.email.toLowerCase() === rsvp.email.toLowerCase()
     const isPinAuth = isPinVerified && foundRsvp?.id === rsvp.id
+    const isBypassEnabled = rsvp.allowDuplicateSubmission === true
     
-    if (!isGoogleVerified && !isPinAuth) {
+    // Skip verification if: 1) Called from Google success handler, 2) Admin enabled bypass, 3) User is verified
+    if (!skipVerification && !isGoogleVerified && !isPinAuth && !isBypassEnabled) {
       toast.error('Please verify your identity first (Google Sign-In or PIN)')
       return
     }
@@ -300,11 +314,12 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
   }
 
   const handleDelete = async (rsvp: RSVP) => {
-    // Check if user is verified (either via Google OAuth or PIN)
+    // Check if user is verified (either via Google OAuth, PIN, or admin bypass enabled)
     const isGoogleVerified = googleUser && googleUser.email.toLowerCase() === rsvp.email.toLowerCase()
     const isPinAuth = isPinVerified && foundRsvp?.id === rsvp.id
+    const isBypassEnabled = rsvp.allowDuplicateSubmission === true
     
-    if (!isGoogleVerified && !isPinAuth) {
+    if (!isGoogleVerified && !isPinAuth && !isBypassEnabled) {
       toast.error('Please verify your identity first (Google Sign-In or PIN)')
       return
     }
@@ -440,54 +455,70 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         transportMode: formData.transportMode || undefined
       }
 
-      // Save to backend - let backend handle the array update
+      // Save to backend
       try {
-        // If we have the full rsvps array, use replace action
-        if (rsvps && Array.isArray(rsvps) && rsvps.length > 0) {
-          const updatedRsvpsArray = rsvps.map(r => r.id === editingRsvp.id ? updatedRSVP : r)
+        let response;
+        
+        // If we have the full rsvps array (admin view), use replace action for consistency
+        // Otherwise, use PUT for single RSVP update (user view - safer, won't delete other RSVPs)
+        if (rsvps && Array.isArray(rsvps) && rsvps.length > 1) {
+          // We have multiple RSVPs loaded - likely admin view
+          // Safe to use replace action
+          const updatedRsvpsArray = rsvps.map(r => r.id === editingRsvp.id ? updatedRSVP : r);
           
-          const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
+          response = await fetch(`${API_BASE}/rsvps?action=replace`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedRsvpsArray)
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to update RSVP')
-          }
-
-          setRSVPs(prev => (prev || []).map(r => r.id === editingRsvp.id ? updatedRSVP : r))
+          });
         } else {
-          // Fallback: Update single RSVP via PUT
-          const response = await fetch(`${API_BASE}/rsvps`, {
+          // Only one RSVP loaded (user's own) - use PUT to update just this one
+          // This is SAFER - won't accidentally delete other RSVPs
+          response = await fetch(`${API_BASE}/rsvps`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedRSVP)
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to update RSVP')
-          }
-
-          // Optimistically update local state
-          setRSVPs(prev => {
-            const prevArray = prev || []
-            const index = prevArray.findIndex(r => r.id === editingRsvp.id)
-            if (index >= 0) {
-              const newArray = [...prevArray]
-              newArray[index] = updatedRSVP
-              return newArray
-            }
-            return [...prevArray, updatedRSVP]
-          })
+          });
         }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Update RSVP failed:', response.status, errorText);
+          throw new Error(`Failed to update RSVP: ${response.status}`);
+        }
+
+        // Update local state
+        setRSVPs(prev => {
+          const prevArray = prev || [];
+          const index = prevArray.findIndex(r => r.id === editingRsvp.id);
+          if (index >= 0) {
+            const newArray = [...prevArray];
+            newArray[index] = updatedRSVP;
+            return newArray;
+          }
+          return [...prevArray, updatedRSVP];
+        });
         
-        toast.success('RSVP updated successfully!')
-        setEditingRsvp(null)
-      } catch (error) {
-        console.error('Error updating RSVP:', error)
-        toast.error('Failed to update RSVP. Please try again.')
-        return
+        toast.success('✅ RSVP updated successfully!');
+        setEditingRsvp(null);
+        // Clear form
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          attending: '',
+          guests: '1',
+          dietaryRestrictions: '',
+          message: '',
+          arrivalDateTime: '',
+          departureDateTime: '',
+          transportNeeded: false,
+          transportMode: ''
+        });
+      } catch (error: any) {
+        console.error('Error updating RSVP:', error);
+        toast.error(`Failed to update RSVP: ${error.message || 'Please try again.'}`);
+        return;
       }
     } else {
       // Check if already RSVP'd - check by email, phone, or family name
@@ -637,7 +668,43 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
 
           {foundRsvp && (
             <div className="mt-4 p-4 border rounded-lg bg-muted/30">
-              {!googleUser && !isPinVerified ? (
+              {/* Show bypass message if admin enabled bypass */}
+              {foundRsvp.allowDuplicateSubmission && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded">
+                  <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    Admin Bypass Enabled
+                  </p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    You can edit or delete this RSVP without verification.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleEdit(foundRsvp, true)}
+                      className="flex-1"
+                    >
+                      <Pencil className="w-3 h-3 mr-1" />
+                      Edit RSVP
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(foundRsvp)}
+                      className="flex-1"
+                    >
+                      <Trash className="w-3 h-3 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Show verification options if bypass NOT enabled */}
+              {!foundRsvp.allowDuplicateSubmission && !googleUser && !isPinVerified ? (
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm font-semibold mb-2">

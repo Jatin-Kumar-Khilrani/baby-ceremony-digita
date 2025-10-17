@@ -19,6 +19,8 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const volumeBeforeDuck = useRef<number>(defaultVolume)
   const wasPlayingBeforeTTS = useRef<boolean | null>(null) // Track state before TTS, null = no TTS active
+  const userManuallyStopped = useRef<boolean>(false) // Track if user manually stopped music
+  const ttsStopTimeout = useRef<NodeJS.Timeout | null>(null) // Debounce TTS stop to detect interruption
   const { isTTSPlaying } = useAudio() // Get TTS playing state from context
 
   // Free royalty-free peaceful instrumental music
@@ -66,12 +68,17 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
     return () => {
       audio.pause()
       audio.src = ''
+      // Clean up any pending timeout
+      if (ttsStopTimeout.current) {
+        clearTimeout(ttsStopTimeout.current)
+      }
     }
   }, [])
 
   // Auto-start music when user first clicks "Listen" (TTS plays)
   useEffect(() => {
-    if (isTTSPlaying && !hasAutoStarted && !isPlaying && audioRef.current) {
+    // Only auto-start if: TTS is playing, hasn't started before, not currently playing, and user hasn't manually stopped it
+    if (isTTSPlaying && !hasAutoStarted && !isPlaying && !userManuallyStopped.current && audioRef.current) {
       console.log('Auto-starting background music on first TTS play')
       setHasAutoStarted(true)
       
@@ -83,7 +90,7 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
         playPromise.then(() => {
           setIsPlaying(true)
           toast.success('🎵 Background music started', {
-            description: 'Music will stop when TTS finishes. Use player to manually control.',
+            description: 'Music will auto-pause when TTS finishes. Use player to keep it playing.',
             duration: 3000
           })
           // Fade in to target volume
@@ -110,7 +117,14 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
     if (!audioRef.current) return
 
     if (isTTSPlaying) {
-      // TTS just started - save the current state ONCE
+      // TTS is playing - clear any pending stop timeout (might be interruption)
+      if (ttsStopTimeout.current) {
+        console.log('TTS restarted before timeout - this is an interruption, not completion')
+        clearTimeout(ttsStopTimeout.current)
+        ttsStopTimeout.current = null
+      }
+      
+      // TTS just started - save the current state ONCE (only if not already saved)
       if (wasPlayingBeforeTTS.current === undefined || wasPlayingBeforeTTS.current === null) {
         wasPlayingBeforeTTS.current = isPlaying
         console.log('TTS started, saving music state:', isPlaying ? 'playing' : 'paused')
@@ -137,49 +151,62 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
       // If music was paused, do nothing - stay paused
       
     } else if (wasPlayingBeforeTTS.current !== undefined && wasPlayingBeforeTTS.current !== null) {
-      // TTS just finished - restore to the saved state OR stop if auto-started
-      console.log('TTS finished, was playing before:', wasPlayingBeforeTTS.current, 'current state:', isPlaying)
+      // TTS stopped - but wait briefly to see if another TTS starts (interruption)
+      console.log('TTS stopped - waiting 200ms to detect interruption vs completion')
       
-      if (wasPlayingBeforeTTS.current) {
-        // Music WAS playing before TTS - keep it playing and restore volume
-        if (isPlaying) {
-          // Still playing - just restore volume
-          setIsTransitioning(true)
-          const targetVolume = isMuted ? 0 : volumeBeforeDuck.current
-          
-          const restoreInterval = setInterval(() => {
-            if (audioRef.current && audioRef.current.volume < targetVolume) {
-              audioRef.current.volume = Math.min(audioRef.current.volume + 0.02, targetVolume)
-            } else {
-              clearInterval(restoreInterval)
-              setIsTransitioning(false)
-            }
-          }, 30)
-
-          return () => clearInterval(restoreInterval)
-        } else {
-          // User paused it during TTS - respect user's action
-          console.log('User paused during TTS, staying paused')
-        }
-      } else {
-        // Music was NOT playing before TTS (it was auto-started or user started during TTS)
-        if (isPlaying) {
-          // Stop the music with fade out
-          console.log('Stopping auto-started music after TTS')
-          const fadeOut = setInterval(() => {
-            if (audioRef.current && audioRef.current.volume > 0.01) {
-              audioRef.current.volume = Math.max(audioRef.current.volume - 0.05, 0)
-            } else {
-              clearInterval(fadeOut)
-              audioRef.current?.pause()
-              setIsPlaying(false)
-            }
-          }, 30)
-        }
+      // Clear any existing timeout
+      if (ttsStopTimeout.current) {
+        clearTimeout(ttsStopTimeout.current)
       }
       
-      // Reset the saved state for next TTS play
-      wasPlayingBeforeTTS.current = null
+      // Set a timeout to handle TTS completion (only if not interrupted)
+      ttsStopTimeout.current = setTimeout(() => {
+        console.log('TTS finished (not interrupted), was playing before:', wasPlayingBeforeTTS.current, 'current state:', isPlaying, 'manually stopped:', userManuallyStopped.current)
+        
+        if (wasPlayingBeforeTTS.current) {
+          // Music WAS playing before TTS - keep it playing and restore volume
+          if (isPlaying && !userManuallyStopped.current) {
+            // Still playing - just restore volume
+            setIsTransitioning(true)
+            const targetVolume = isMuted ? 0 : volumeBeforeDuck.current
+            
+            const restoreInterval = setInterval(() => {
+              if (audioRef.current && audioRef.current.volume < targetVolume) {
+                audioRef.current.volume = Math.min(audioRef.current.volume + 0.02, targetVolume)
+              } else {
+                clearInterval(restoreInterval)
+                setIsTransitioning(false)
+              }
+            }, 30)
+          } else if (userManuallyStopped.current) {
+            // User manually stopped it during TTS - respect user's action
+            console.log('User manually stopped during TTS, staying stopped')
+          }
+        } else {
+          // Music was NOT playing before TTS (it was auto-started during TTS)
+          // Pause it after TTS finishes (but allow subsequent TTS to auto-restart it)
+          if (isPlaying && !userManuallyStopped.current) {
+            console.log('Pausing auto-started music after TTS')
+            const fadeOut = setInterval(() => {
+              if (audioRef.current && audioRef.current.volume > 0.01) {
+                audioRef.current.volume = Math.max(audioRef.current.volume - 0.05, 0)
+              } else {
+                clearInterval(fadeOut)
+                audioRef.current?.pause()
+                setIsPlaying(false)
+                // Reset hasAutoStarted so next TTS can auto-start music again
+                setHasAutoStarted(false)
+                console.log('Reset hasAutoStarted - next TTS will auto-start music')
+                // DON'T set userManuallyStopped - this is auto-pause, not manual
+              }
+            }, 30)
+          }
+        }
+        
+        // Reset the saved state for next TTS play
+        wasPlayingBeforeTTS.current = null
+        ttsStopTimeout.current = null
+      }, 200) // 200ms debounce to detect interruption
     }
   }, [isTTSPlaying, isPlaying, volume, isMuted])
 
@@ -195,6 +222,7 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
     if (isPlaying) {
       // User manually pausing
       console.log('User manually paused music')
+      userManuallyStopped.current = true // Mark as manually stopped
       
       // Fade out before pausing
       const fadeOut = setInterval(() => {
@@ -209,6 +237,7 @@ export function BackgroundMusicPlayer({ autoPlay = false, defaultVolume = 0.25 }
     } else {
       // User manually starting
       console.log('User manually started music')
+      userManuallyStopped.current = false // Clear the manual stop flag
       
       // Start with fade in
       audioRef.current.volume = 0
