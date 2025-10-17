@@ -385,6 +385,39 @@ ${e.love} With Love,
                   </CardContent>
                 </Card>
 
+                {/* Venue Location Map */}
+                <Card className="border-accent/20 shadow-lg overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5 pb-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={24} className="text-primary" />
+                      <CardTitle className="text-destructive">Venue Location</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3577.8530907294858!2d73.03596007621675!3d26.266430977038258!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39418c5fd8f19893%3A0x5b00d59bd23b2c95!2sChandra%20Inn!5e0!3m2!1sen!2sin!4v1760695802504!5m2!1sen!2sin"
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Chandra Inn Venue Location"
+                      />
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-t border-accent/20">
+                      <a 
+                        href="https://maps.google.com/?q=Chandra+Inn+Jodhpur" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+                      >
+                        <MapPin size={18} />
+                        Open in Google Maps
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <div className="text-center">
                   <p className="text-xl text-primary font-medium">With Love & Regards</p>
                   <p className="text-2xl font-script text-destructive font-bold">{eventDetails.family}</p>

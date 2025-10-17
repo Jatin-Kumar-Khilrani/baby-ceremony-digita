@@ -5,6 +5,13 @@ const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const containerName = "ceremony-data";
 const backupContainerName = "ceremony-data-backups";
 
+// Data types to backup
+const DATA_TYPES = {
+  rsvps: 'rsvps.json',
+  wishes: 'wishes.json',
+  photos: 'photos-metadata.json'
+} as const;
+
 async function streamToBuffer(readableStream: NodeJS.ReadableStream): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -37,48 +44,65 @@ export async function scheduledBackup(myTimer: Timer, context: InvocationContext
     const backupContainerClient = blobServiceClient.getContainerClient(backupContainerName);
     await backupContainerClient.createIfNotExists({ access: "blob" });
 
-    // Read current RSVP data
-    const blobClient = containerClient.getBlobClient("rsvps.json");
-    
-    let data: any = [];
-    let rsvpCount = 0;
-    
-    try {
-      const downloadResponse = await blobClient.download();
-      const downloaded = await streamToBuffer(downloadResponse.readableStreamBody!);
-      data = JSON.parse(downloaded.toString());
-      rsvpCount = Array.isArray(data) ? data.length : 0;
-    } catch (error: any) {
-      if (error.statusCode === 404) {
-        context.log('No rsvps.json found - creating backup of empty data');
-      } else {
-        throw error;
-      }
-    }
-
-    // Create backup with timestamp
+    // Create backup timestamp (same for all data types)
     const now = new Date();
     const timestamp = now.toISOString().replace(/[:.]/g, '-');
     const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-    const backupName = `rsvps-backup-${dateStr}-${timestamp}.json`;
     
-    const backupBlob = backupContainerClient.getBlockBlobClient(backupName);
-    const content = JSON.stringify(data, null, 2);
-    
-    await backupBlob.upload(content, content.length, {
-      blobHTTPHeaders: {
-        blobContentType: "application/json"
-      },
-      metadata: {
-        timestamp: now.toISOString(),
-        rsvpCount: rsvpCount.toString(),
-        createdBy: 'scheduled-backup',
-        date: dateStr
-      }
-    });
+    const backupResults: any[] = [];
+    let totalItems = 0;
 
-    context.log(`✅ Scheduled backup created: ${backupName}`);
-    context.log(`📊 Backed up ${rsvpCount} RSVP(s)`);
+    // Backup each data type
+    for (const [dataType, fileName] of Object.entries(DATA_TYPES)) {
+      try {
+        const blobClient = containerClient.getBlobClient(fileName);
+        
+        let data: any = [];
+        let itemCount = 0;
+        
+        try {
+          const downloadResponse = await blobClient.download();
+          const downloaded = await streamToBuffer(downloadResponse.readableStreamBody!);
+          data = JSON.parse(downloaded.toString());
+          itemCount = Array.isArray(data) ? data.length : 0;
+        } catch (error: any) {
+          if (error.statusCode === 404) {
+            context.log(`No ${fileName} found - creating backup of empty data`);
+          } else {
+            throw error;
+          }
+        }
+
+        // Create backup
+        const backupName = `${dataType}-backup-${timestamp}.json`;
+        const backupBlob = backupContainerClient.getBlockBlobClient(backupName);
+        const content = JSON.stringify(data, null, 2);
+        
+        await backupBlob.upload(content, content.length, {
+          blobHTTPHeaders: {
+            blobContentType: "application/json"
+          },
+          metadata: {
+            timestamp: now.toISOString(),
+            dataType: dataType,
+            itemCount: itemCount.toString(),
+            createdBy: 'scheduled-backup',
+            date: dateStr,
+            backupGroup: timestamp
+          }
+        });
+
+        backupResults.push({ dataType, backupName, itemCount });
+        totalItems += itemCount;
+        context.log(`✅ Backed up ${dataType}: ${backupName} (${itemCount} items)`);
+      } catch (error: any) {
+        context.error(`❌ Failed to backup ${dataType}:`, error);
+        backupResults.push({ dataType, error: error.message });
+      }
+    }
+
+    context.log(`📊 Total items backed up: ${totalItems}`);
+    context.log(`📦 Backup files created: ${backupResults.filter(r => !r.error).length}`);
 
     // Clean up old backups (keep last 30 days)
     const thirtyDaysAgo = new Date();

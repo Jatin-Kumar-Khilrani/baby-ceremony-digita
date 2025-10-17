@@ -5,3 +5,5 @@ import './rsvps';
 import './photos';
 import './wishes';
 import './enhance-wish';
+import './backup';
+import './scheduledBackup';

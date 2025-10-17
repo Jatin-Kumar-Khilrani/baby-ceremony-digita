@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -456,6 +456,8 @@ export default function Admin() {
   const rsvpSectionRef = useRef<HTMLDivElement>(null)
   const [backups, setBackups] = useState<any[]>([])
   const [loadingBackups, setLoadingBackups] = useState(false)
+  const [previewBackup, setPreviewBackup] = useState<any>(null)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [stats, setStats] = useState({
     totalRsvps: 0,
     attending: 0,
@@ -565,6 +567,157 @@ export default function Admin() {
     }
   }
 
+  // Handler for clicking transport stat - scroll to RSVPs and filter
+  const handleTransportClick = () => {
+    setActiveTab('rsvps')
+    setRsvpSortBy('transport')
+    // Scroll to RSVP section
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking attending stat - scroll to RSVPs and filter
+  const handleAttendingClick = () => {
+    setActiveTab('rsvps')
+    setRsvpSortBy('status')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking guests stat - scroll to RSVPs and filter
+  const handleGuestsClick = () => {
+    setActiveTab('rsvps')
+    setRsvpSortBy('guests')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking total RSVPs stat - scroll to RSVPs
+  const handleTotalRsvpsClick = () => {
+    console.log('Total RSVPs clicked, switching to rsvps tab')
+    setActiveTab('rsvps')
+    setRsvpSortBy('date')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking wishes stat - switch to wishes tab
+  const handleWishesClick = () => {
+    setActiveTab('wishes')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Handler for clicking photos stat - switch to photos tab
+  const handlePhotosClick = () => {
+    setActiveTab('photos')
+    setTimeout(() => {
+      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  // Memoize filtered/sorted data (must be before early return to maintain hook order)
+  const filteredRsvps = useMemo(() => {
+    let filtered = [...rsvps]
+    
+    // Apply search filter
+    if (rsvpSearchQuery.trim()) {
+      const query = rsvpSearchQuery.toLowerCase()
+      filtered = filtered.filter(rsvp => 
+        rsvp.name.toLowerCase().includes(query) ||
+        rsvp.email.toLowerCase().includes(query) ||
+        rsvp.phone.includes(query) ||
+        (rsvp.roomNumber && rsvp.roomNumber.toLowerCase().includes(query))
+      )
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (rsvpSortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'date':
+          return b.timestamp - a.timestamp
+        case 'guests':
+          return (b.guests || 1) - (a.guests || 1)
+        case 'status':
+          if (a.attending === b.attending) return 0
+          return a.attending ? -1 : 1
+        case 'transport':
+          if (a.transportNeeded === b.transportNeeded) {
+            if (a.transportNeeded && a.transportMode && b.transportMode) {
+              return a.transportMode.localeCompare(b.transportMode)
+            }
+            return 0
+          }
+          return a.transportNeeded ? -1 : 1
+        case 'rooms':
+          if ((a.roomNumber ? 1 : 0) === (b.roomNumber ? 1 : 0)) {
+            if (a.roomNumber && b.roomNumber) {
+              return a.roomNumber.localeCompare(b.roomNumber)
+            }
+            return 0
+          }
+          return a.roomNumber ? -1 : 1
+        case 'meals':
+          const aHasMeals = (a.arrivalDateTime || a.departureDateTime) ? 1 : 0
+          const bHasMeals = (b.arrivalDateTime || b.departureDateTime) ? 1 : 0
+          if (aHasMeals === bHasMeals) {
+            if (a.arrivalDateTime && b.arrivalDateTime) {
+              return new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
+            }
+            return 0
+          }
+          return bHasMeals - aHasMeals
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }, [rsvps, rsvpSearchQuery, rsvpSortBy])
+
+  const filteredWishes = useMemo(() => {
+    let filtered = [...wishes]
+    
+    // Apply search filter
+    if (wishSearchQuery.trim()) {
+      const query = wishSearchQuery.toLowerCase()
+      filtered = filtered.filter(wish => 
+        wish.name.toLowerCase().includes(query) ||
+        wish.message.toLowerCase().includes(query)
+      )
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (wishSortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'date':
+          return b.timestamp - a.timestamp
+        case 'message':
+          return a.message.localeCompare(b.message)
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }, [wishes, wishSearchQuery, wishSortBy])
+
+  // Load backups when switching to backups tab (must be before auth check)
+  useEffect(() => {
+    if (activeTab === 'backups' && backups.length === 0 && isAuthenticated) {
+      loadBackups()
+    }
+  }, [activeTab, isAuthenticated, backups.length])
+
   // If not authenticated, show authentication screen
   if (!isAuthenticated) {
     return <AdminAuth onAuthenticated={handleAuthenticated} />
@@ -652,7 +805,11 @@ export default function Admin() {
       
       if (response.ok) {
         const result = await response.json()
-        toast.success(`Backup created: ${result.rsvpCount} RSVPs backed up`)
+        const backupSummary = result.backups
+          .filter((b: any) => !b.error)
+          .map((b: any) => `${b.itemCount} ${b.dataType}`)
+          .join(', ')
+        toast.success(`Backup created: ${backupSummary}`)
         loadBackups() // Refresh list
       } else {
         toast.error('Failed to create backup')
@@ -663,8 +820,9 @@ export default function Admin() {
     }
   }
 
-  const restoreBackup = async (backupName: string) => {
-    if (!confirm(`Are you sure you want to restore from this backup?\n\n⚠️ This will REPLACE all current RSVP data!\n\nBackup: ${backupName}`)) {
+  const restoreBackup = async (backupGroup: string, dataTypes?: string[]) => {
+    const dataTypeNames = dataTypes ? dataTypes.join(', ') : 'all data (RSVPs, Wishes, Photos)'
+    if (!confirm(`Are you sure you want to restore from this backup?\n\n⚠️ This will REPLACE ${dataTypeNames}!\n\nBackup: ${backupGroup}`)) {
       return
     }
 
@@ -675,19 +833,22 @@ export default function Admin() {
           'Content-Type': 'application/json',
           'x-admin-key': getAdminKey()
         },
-        body: JSON.stringify({ backupName })
+        body: JSON.stringify({ 
+          backupGroup,
+          ...(dataTypes && { dataTypes })
+        })
       })
       
       if (response.ok) {
         const result = await response.json()
-        toast.success(`Restored ${result.rsvpCount} RSVPs from backup`)
+        const restored = result.restored
+          .filter((r: any) => !r.error)
+          .map((r: any) => `${r.itemCount} ${r.dataType}`)
+          .join(', ')
+        toast.success(`Restored: ${restored}`)
         
-        // Reload RSVPs
-        const rsvpResponse = await fetch(`${API_BASE}/rsvps?_t=${Date.now()}`)
-        if (rsvpResponse.ok) {
-          const rsvpsData = await rsvpResponse.json()
-          setRsvps(Array.isArray(rsvpsData) ? rsvpsData : [])
-        }
+        // Reload all data
+        fetchAllData()
       } else {
         toast.error('Failed to restore backup')
       }
@@ -697,20 +858,69 @@ export default function Admin() {
     }
   }
 
-  const downloadBackup = async (backupName: string) => {
+  const downloadBackup = async (backupGroup: string) => {
     try {
-      // For downloading, we can use the Azure Storage direct link
-      // Or fetch through API and download
-      toast.info('Download feature - use Azure Portal for now')
-      // TODO: Implement direct download
+      const response = await fetch(`${API_BASE}/backup?action=download&backupGroup=${backupGroup}`, {
+        headers: {
+          'x-admin-key': getAdminKey(),
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to download backup')
+      }
+
+      // Get the filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition
+        ? contentDisposition.split('filename="')[1].split('"')[0]
+        : `backup-${backupGroup}.json`
+
+      // Create blob and download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.success(`✅ Backup downloaded: ${filename}`)
     } catch (error) {
       console.error('Error downloading backup:', error)
       toast.error('Error downloading backup')
     }
   }
 
-  const deleteBackup = async (backupName: string) => {
-    if (!confirm(`Are you sure you want to delete this backup?\n\n${backupName}`)) {
+  const previewBackupData = async (backupGroup: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/backup?action=download&backupGroup=${backupGroup}`, {
+        headers: {
+          'x-admin-key': getAdminKey(),
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load backup')
+      }
+
+      const data = await response.json()
+      console.log('Backup data received:', data)
+      console.log('RSVPs:', data.data?.rsvps)
+      console.log('Wishes:', data.data?.wishes)
+      console.log('Photos:', data.data?.photos)
+      setPreviewBackup(data)
+      setShowPreviewModal(true)
+    } catch (error) {
+      console.error('Error loading backup:', error)
+      toast.error('Error loading backup preview')
+    }
+  }
+
+  const deleteBackup = async (backupGroup: string) => {
+    if (!confirm(`Are you sure you want to delete this backup group?\n\nThis will delete all files (RSVPs, Wishes, Photos) for:\n${backupGroup}`)) {
       return
     }
 
@@ -721,11 +931,12 @@ export default function Admin() {
           'Content-Type': 'application/json',
           'x-admin-key': getAdminKey()
         },
-        body: JSON.stringify({ backupName })
+        body: JSON.stringify({ backupGroup })
       })
       
       if (response.ok) {
-        toast.success('Backup deleted')
+        const result = await response.json()
+        toast.success(`Deleted ${result.deleted.length} backup file(s)`)
         loadBackups() // Refresh list
       } else {
         toast.error('Failed to delete backup')
@@ -744,13 +955,6 @@ export default function Admin() {
       timeStyle: 'short'
     })
   }
-
-  // Load backups when switching to backups tab
-  useEffect(() => {
-    if (activeTab === 'backups' && backups.length === 0) {
-      loadBackups()
-    }
-  }, [activeTab])
 
   // CRUD Operations for RSVPs
   const deleteRSVP = async (id: string) => {
@@ -994,159 +1198,6 @@ export default function Admin() {
     } else {
       setSelectedPhotos(new Set(photos.map(p => p.id)))
     }
-  }
-
-  // Filter and sort RSVPs
-  const getFilteredAndSortedRsvps = () => {
-    let filtered = [...rsvps]
-    
-    // Apply search filter
-    if (rsvpSearchQuery.trim()) {
-      const query = rsvpSearchQuery.toLowerCase()
-      filtered = filtered.filter(rsvp => 
-        rsvp.name.toLowerCase().includes(query) ||
-        rsvp.email.toLowerCase().includes(query) ||
-        rsvp.phone.includes(query) ||
-        (rsvp.roomNumber && rsvp.roomNumber.toLowerCase().includes(query))
-      )
-    }
-    
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (rsvpSortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'date':
-          return b.timestamp - a.timestamp // Most recent first
-        case 'guests':
-          return (b.guests || 1) - (a.guests || 1) // Most guests first
-        case 'status':
-          if (a.attending === b.attending) return 0
-          return a.attending ? -1 : 1 // Attending first
-        case 'transport':
-          // Sort by transport needed, then by transport mode
-          if (a.transportNeeded === b.transportNeeded) {
-            // If both need transport, sort by mode
-            if (a.transportNeeded && a.transportMode && b.transportMode) {
-              return a.transportMode.localeCompare(b.transportMode)
-            }
-            return 0
-          }
-          return a.transportNeeded ? -1 : 1 // Transport needed first
-        case 'rooms':
-          // Sort by room allocated (those with rooms first)
-          if ((a.roomNumber ? 1 : 0) === (b.roomNumber ? 1 : 0)) {
-            // If both have or don't have rooms, sort by room number
-            if (a.roomNumber && b.roomNumber) {
-              return a.roomNumber.localeCompare(b.roomNumber)
-            }
-            return 0
-          }
-          return a.roomNumber ? -1 : 1 // With rooms first
-        case 'meals':
-          // Sort by meals needed (arrival/departure times indicating meal requirements)
-          const aHasMeals = (a.arrivalDateTime || a.departureDateTime) ? 1 : 0
-          const bHasMeals = (b.arrivalDateTime || b.departureDateTime) ? 1 : 0
-          if (aHasMeals === bHasMeals) {
-            // Secondary sort by arrival time if both have meals
-            if (a.arrivalDateTime && b.arrivalDateTime) {
-              return new Date(a.arrivalDateTime).getTime() - new Date(b.arrivalDateTime).getTime()
-            }
-            return 0
-          }
-          return bHasMeals - aHasMeals // With meals first
-        default:
-          return 0
-      }
-    })
-    
-    return filtered
-  }
-
-  const getFilteredAndSortedWishes = () => {
-    let filtered = [...wishes]
-    
-    // Apply search filter
-    if (wishSearchQuery.trim()) {
-      const query = wishSearchQuery.toLowerCase()
-      filtered = filtered.filter(wish => 
-        wish.name.toLowerCase().includes(query) ||
-        wish.message.toLowerCase().includes(query)
-      )
-    }
-    
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (wishSortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'date':
-          return b.timestamp - a.timestamp // Most recent first
-        case 'message':
-          return a.message.localeCompare(b.message)
-        default:
-          return 0
-      }
-    })
-    
-    return filtered
-  }
-
-  const filteredRsvps = getFilteredAndSortedRsvps()
-  const filteredWishes = getFilteredAndSortedWishes()
-
-  // Handler for clicking transport stat - scroll to RSVPs and filter
-  const handleTransportClick = () => {
-    setActiveTab('rsvps')
-    setRsvpSortBy('transport')
-    // Scroll to RSVP section
-    setTimeout(() => {
-      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }
-
-  // Handler for clicking attending stat - scroll to RSVPs and filter
-  const handleAttendingClick = () => {
-    setActiveTab('rsvps')
-    setRsvpSortBy('status')
-    setTimeout(() => {
-      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }
-
-  // Handler for clicking guests stat - scroll to RSVPs and filter
-  const handleGuestsClick = () => {
-    setActiveTab('rsvps')
-    setRsvpSortBy('guests')
-    setTimeout(() => {
-      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }
-
-  // Handler for clicking total RSVPs stat - scroll to RSVPs
-  const handleTotalRsvpsClick = () => {
-    console.log('Total RSVPs clicked, switching to rsvps tab')
-    setActiveTab('rsvps')
-    setRsvpSortBy('date')
-    setTimeout(() => {
-      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }
-
-  // Handler for clicking wishes stat - switch to wishes tab
-  const handleWishesClick = () => {
-    setActiveTab('wishes')
-    setTimeout(() => {
-      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }
-
-  // Handler for clicking photos stat - switch to photos tab
-  const handlePhotosClick = () => {
-    setActiveTab('photos')
-    setTimeout(() => {
-      rsvpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
   }
 
   // Handler for clicking rooms stat - scroll to RSVPs and filter by rooms
@@ -1970,12 +2021,13 @@ export default function Admin() {
                 <div className="space-y-4">
                   {/* Info Banner */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-2">📦 Automated Daily Backups</h4>
+                    <h4 className="font-semibold text-blue-900 mb-2">📦 Comprehensive Backup System</h4>
                     <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Backups are created automatically every day at 2:00 AM UTC</li>
+                      <li>• Backups include <strong>RSVPs, Wishes, and Photos</strong></li>
+                      <li>• Automated backups run daily at 2:00 AM UTC</li>
                       <li>• Backups are kept for 30 days, then automatically deleted</li>
-                      <li>• You can create manual backups anytime using the button above</li>
-                      <li>• Restoring a backup will replace all current RSVP data</li>
+                      <li>• You can restore all data together or individually</li>
+                      <li>• Manual backups can be created anytime</li>
                     </ul>
                   </div>
 
@@ -1993,12 +2045,13 @@ export default function Admin() {
                       </h4>
                       {backups.map((backup) => (
                         <div 
-                          key={backup.name} 
+                          key={backup.backupGroup || backup.name} 
                           className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
+                          <div className="flex flex-col gap-3">
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
                                 <span className="font-medium text-gray-900">
                                   {formatBackupDate(backup.timestamp)}
                                 </span>
@@ -2006,37 +2059,112 @@ export default function Admin() {
                                   {backup.createdBy === 'scheduled-backup' ? 'Auto' : 'Manual'}
                                 </Badge>
                               </div>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <div>📊 RSVPs: <span className="font-medium">{backup.rsvpCount}</span></div>
-                                <div className="text-xs text-gray-500">
-                                  {backup.name}
-                                </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => previewBackupData(backup.backupGroup || backup.name)}
+                                  title="View backup contents"
+                                >
+                                  <MagnifyingGlass className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadBackup(backup.backupGroup || backup.name)}
+                                  title="Download backup to your computer"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => deleteBackup(backup.backupGroup || backup.name)}
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => downloadBackup(backup.name)}
-                              >
-                                <Download className="w-4 h-4 mr-1" />
-                                Download
-                              </Button>
+
+                            {/* Data Breakdown */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="bg-purple-50 border border-purple-200 rounded p-2 text-center">
+                                <div className="text-xs text-purple-600 font-medium">RSVPs</div>
+                                <div className="text-lg font-bold text-purple-900">{backup.rsvps || 0}</div>
+                              </div>
+                              <div className="bg-pink-50 border border-pink-200 rounded p-2 text-center">
+                                <div className="text-xs text-pink-600 font-medium">Wishes</div>
+                                <div className="text-lg font-bold text-pink-900">{backup.wishes || 0}</div>
+                              </div>
+                              <div className="bg-indigo-50 border border-indigo-200 rounded p-2 text-center">
+                                <div className="text-xs text-indigo-600 font-medium">Photos</div>
+                                <div className="text-lg font-bold text-indigo-900">{backup.photos || 0}</div>
+                              </div>
+                            </div>
+
+                            {/* Total Count */}
+                            <div className="text-sm text-gray-600 text-center py-1 bg-gray-100 rounded">
+                              <strong>Total:</strong> {backup.totalItems || (backup.rsvps || 0) + (backup.wishes || 0) + (backup.photos || 0)} items
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-2">
+                              {/* Restore All */}
                               <Button
                                 variant="default"
                                 size="sm"
-                                onClick={() => restoreBackup(backup.name)}
+                                className="w-full"
+                                onClick={() => restoreBackup(backup.backupGroup || backup.name)}
                               >
-                                Restore
+                                <Download className="w-4 h-4 mr-2" />
+                                Restore All Data
                               </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => deleteBackup(backup.name)}
-                              >
-                                <Trash className="w-4 h-4" />
-                              </Button>
+
+                              {/* Individual Restore Options */}
+                              <div className="grid grid-cols-3 gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => restoreBackup(backup.backupGroup || backup.name, ['rsvps'])}
+                                  className="text-xs"
+                                >
+                                  RSVPs Only
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => restoreBackup(backup.backupGroup || backup.name, ['wishes'])}
+                                  className="text-xs"
+                                >
+                                  Wishes Only
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => restoreBackup(backup.backupGroup || backup.name, ['photos'])}
+                                  className="text-xs"
+                                >
+                                  Photos Only
+                                </Button>
+                              </div>
                             </div>
+
+                            {/* File Details (collapsible) */}
+                            <details className="text-xs text-gray-500">
+                              <summary className="cursor-pointer hover:text-gray-700">
+                                View backup files ({backup.files?.length || 3})
+                              </summary>
+                              <div className="mt-2 space-y-1 pl-4">
+                                {backup.files?.map((file: any) => (
+                                  <div key={file.name} className="flex justify-between">
+                                    <span className="truncate">{file.name}</span>
+                                    <span className="text-gray-400 ml-2">{file.itemCount} items</span>
+                                  </div>
+                                )) || (
+                                  <div className="text-gray-400">Legacy backup format</div>
+                                )}
+                              </div>
+                            </details>
                           </div>
                         </div>
                       ))}
@@ -2049,6 +2177,154 @@ export default function Admin() {
         </Tabs>
         </div>
       </div>
+
+      {/* Backup Preview Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Backup Preview - {previewBackup?.backupGroup}</DialogTitle>
+          </DialogHeader>
+          
+          {previewBackup && (
+            <div className="space-y-4">
+              {/* Debug Info */}
+              <details className="text-xs bg-gray-50 p-2 rounded">
+                <summary className="cursor-pointer font-mono">Debug: Show Raw Data Structure</summary>
+                <pre className="mt-2 overflow-auto max-h-40 bg-white p-2 rounded border">
+                  {JSON.stringify(previewBackup, null, 2)}
+                </pre>
+              </details>
+
+              {/* Summary */}
+              <div className="bg-gray-100 p-4 rounded-lg">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {previewBackup.data?.rsvps?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">RSVPs</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-pink-600">
+                      {previewBackup.data?.wishes?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Wishes</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-indigo-600">
+                      {previewBackup.data?.photos?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Photos</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* RSVPs */}
+              {previewBackup.data?.rsvps?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-purple-700">RSVPs</h3>
+                  <div className="max-h-60 overflow-y-auto border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-purple-50 sticky top-0">
+                        <tr>
+                          <th className="p-2 text-left">Name</th>
+                          <th className="p-2 text-left">Email</th>
+                          <th className="p-2 text-left">Guests</th>
+                          <th className="p-2 text-left">Attending</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewBackup.data.rsvps.map((rsvp: any, idx: number) => (
+                          <tr key={idx} className="border-t hover:bg-gray-50">
+                            <td className="p-2">{rsvp.name}</td>
+                            <td className="p-2">{rsvp.email}</td>
+                            <td className="p-2">{rsvp.guests || 1}</td>
+                            <td className="p-2">
+                              {rsvp.attending ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Wishes */}
+              {previewBackup.data?.wishes?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-pink-700">Wishes</h3>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {previewBackup.data.wishes.map((wish: any, idx: number) => (
+                      <div key={idx} className="border rounded p-3 bg-pink-50">
+                        <div className="font-medium">{wish.name}</div>
+                        <div className="text-sm text-gray-600 mt-1">{wish.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Photos */}
+              {previewBackup.data?.photos?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-indigo-700">Photos</h3>
+                  <div className="max-h-60 overflow-y-auto border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-indigo-50 sticky top-0">
+                        <tr>
+                          <th className="p-2 text-left">Name</th>
+                          <th className="p-2 text-left">Caption</th>
+                          <th className="p-2 text-left">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewBackup.data.photos.map((photo: any, idx: number) => (
+                          <tr key={idx} className="border-t hover:bg-gray-50">
+                            <td className="p-2">{photo.name}</td>
+                            <td className="p-2">{photo.caption || '-'}</td>
+                            <td className="p-2">
+                              {photo.timestamp 
+                                ? new Date(photo.timestamp).toLocaleDateString() 
+                                : photo.uploadedAt 
+                                ? new Date(photo.uploadedAt).toLocaleDateString()
+                                : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Download Button in Modal */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPreviewModal(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    downloadBackup(previewBackup.backupGroup)
+                    setShowPreviewModal(false)
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Backup
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+

@@ -6,4 +6,6 @@ require("./rsvps");
 require("./photos");
 require("./wishes");
 require("./enhance-wish");
+require("./backup");
+require("./scheduledBackup");
 //# sourceMappingURL=index.js.map
