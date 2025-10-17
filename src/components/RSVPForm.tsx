@@ -1002,14 +1002,17 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="message">Special Message or Wishes</Label>
+              <Label htmlFor="message">Additional Notes (Optional)</Label>
               <Textarea
                 id="message"
                 value={formData.message}
                 onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                placeholder="Share your blessings and wishes for baby Parv..."
+                placeholder="Any dietary preferences, special requirements, or notes for the hosts..."
                 rows={3}
               />
+              <p className="text-xs text-muted-foreground">
+                💝 Want to share wishes? Visit the <span className="font-semibold text-primary">Wishes tab</span> to leave your blessings with text or audio!
+              </p>
             </div>
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-lg py-3">

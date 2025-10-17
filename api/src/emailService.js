@@ -32,15 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generatePin = generatePin;
 exports.sendPinEmail = sendPinEmail;
@@ -69,58 +60,69 @@ function createTransporter() {
     return nodemailer.createTransport(config);
 }
 // Send PIN via email using Azure Communication Services
-function sendPinEmailAzure(recipientEmail, recipientName, pin) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const connectionString = process.env.AZURE_COMMUNICATION_CONNECTION_STRING;
-            if (!connectionString) {
-                throw new Error('Azure Communication Services connection string not configured');
-            }
-            const client = new communication_email_1.EmailClient(connectionString);
-            const senderAddress = process.env.AZURE_COMMUNICATION_SENDER_ADDRESS || 'DoNotReply@YOUR_DOMAIN.com';
-            const emailMessage = {
-                senderAddress: senderAddress,
-                content: {
-                    subject: "Your RSVP Verification PIN - Baby Parv's Ceremony",
-                    html: getEmailHtmlTemplate(recipientName, pin),
-                    plainText: getEmailPlainTextTemplate(recipientName, pin),
-                },
-                recipients: {
-                    to: [{ address: recipientEmail }],
-                },
-            };
-            const poller = yield client.beginSend(emailMessage);
-            yield poller.pollUntilDone();
-            console.log(`Azure Email sent successfully to ${recipientEmail}`);
-            return true;
+async function sendPinEmailAzure(recipientEmail, recipientName, pin) {
+    try {
+        const connectionString = process.env.AZURE_COMMUNICATION_CONNECTION_STRING;
+        if (!connectionString) {
+            console.error('AZURE_COMMUNICATION_CONNECTION_STRING is not set');
+            throw new Error('Azure Communication Services connection string not configured');
         }
-        catch (error) {
-            console.error('Error sending email via Azure:', error);
-            return false;
+        const senderAddress = process.env.AZURE_COMMUNICATION_SENDER_ADDRESS;
+        if (!senderAddress) {
+            console.error('AZURE_COMMUNICATION_SENDER_ADDRESS is not set');
+            throw new Error('Azure Communication Services sender address not configured');
         }
-    });
-}
-// Send PIN via email using SMTP (Gmail, etc.)
-function sendPinEmailSMTP(recipientEmail, recipientName, pin) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const transporter = createTransporter();
-            const mailOptions = {
-                from: `"Baby Parv's Ceremony" <${process.env.SMTP_USER}>`,
-                to: recipientEmail,
+        console.log(`Attempting to send email via Azure to: ${recipientEmail}`);
+        console.log(`Sender address: ${senderAddress}`);
+        const client = new communication_email_1.EmailClient(connectionString);
+        const emailMessage = {
+            senderAddress: senderAddress,
+            content: {
                 subject: "Your RSVP Verification PIN - Baby Parv's Ceremony",
                 html: getEmailHtmlTemplate(recipientName, pin),
-                text: getEmailPlainTextTemplate(recipientName, pin),
-            };
-            yield transporter.sendMail(mailOptions);
-            console.log(`SMTP Email sent successfully to ${recipientEmail}`);
-            return true;
-        }
-        catch (error) {
-            console.error('Error sending email via SMTP:', error);
-            return false;
-        }
-    });
+                plainText: getEmailPlainTextTemplate(recipientName, pin),
+            },
+            recipients: {
+                to: [{ address: recipientEmail }],
+            },
+        };
+        console.log('Sending email message...');
+        const poller = await client.beginSend(emailMessage);
+        console.log('Email poller started, waiting for completion...');
+        const result = await poller.pollUntilDone();
+        console.log(`Azure Email sent successfully to ${recipientEmail}. Status: ${result.status}`);
+        return true;
+    }
+    catch (error) {
+        console.error('Error sending email via Azure:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            statusCode: error.statusCode,
+            stack: error.stack
+        });
+        return false;
+    }
+}
+// Send PIN via email using SMTP (Gmail, etc.)
+async function sendPinEmailSMTP(recipientEmail, recipientName, pin) {
+    try {
+        const transporter = createTransporter();
+        const mailOptions = {
+            from: `"Baby Parv's Ceremony" <${process.env.SMTP_USER}>`,
+            to: recipientEmail,
+            subject: "Your RSVP Verification PIN - Baby Parv's Ceremony",
+            html: getEmailHtmlTemplate(recipientName, pin),
+            text: getEmailPlainTextTemplate(recipientName, pin),
+        };
+        await transporter.sendMail(mailOptions);
+        console.log(`SMTP Email sent successfully to ${recipientEmail}`);
+        return true;
+    }
+    catch (error) {
+        console.error('Error sending email via SMTP:', error);
+        return false;
+    }
 }
 // HTML email template
 function getEmailHtmlTemplate(recipientName, pin) {
@@ -198,28 +200,25 @@ If you did not submit an RSVP, please disregard this email.
   `;
 }
 // Send PIN via email (auto-detects service type)
-function sendPinEmail(recipientEmail, recipientName, pin) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const serviceType = getEmailServiceType();
-        console.log(`Sending PIN email via ${serviceType} to ${recipientEmail}`);
-        if (serviceType === 'azure') {
-            return yield sendPinEmailAzure(recipientEmail, recipientName, pin);
-        }
-        else {
-            return yield sendPinEmailSMTP(recipientEmail, recipientName, pin);
-        }
-    });
+async function sendPinEmail(recipientEmail, recipientName, pin) {
+    const serviceType = getEmailServiceType();
+    console.log(`Sending PIN email via ${serviceType} to ${recipientEmail}`);
+    if (serviceType === 'azure') {
+        return await sendPinEmailAzure(recipientEmail, recipientName, pin);
+    }
+    else {
+        return await sendPinEmailSMTP(recipientEmail, recipientName, pin);
+    }
 }
 // Send PIN update notification
-function sendPinUpdateEmail(recipientEmail, recipientName, oldPin, newPin) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const transporter = createTransporter();
-            const mailOptions = {
-                from: `"Baby Parv's Ceremony" <${process.env.SMTP_USER}>`,
-                to: recipientEmail,
-                subject: 'Your RSVP PIN Has Been Updated - Baby Parv\'s Ceremony',
-                html: `
+async function sendPinUpdateEmail(recipientEmail, recipientName, oldPin, newPin) {
+    try {
+        const transporter = createTransporter();
+        const mailOptions = {
+            from: `"Baby Parv's Ceremony" <${process.env.SMTP_USER}>`,
+            to: recipientEmail,
+            subject: 'Your RSVP PIN Has Been Updated - Baby Parv\'s Ceremony',
+            html: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -252,14 +251,13 @@ function sendPinUpdateEmail(recipientEmail, recipientName, oldPin, newPin) {
         </body>
         </html>
       `,
-            };
-            yield transporter.sendMail(mailOptions);
-            return true;
-        }
-        catch (error) {
-            console.error('Error sending update email:', error);
-            return false;
-        }
-    });
+        };
+        await transporter.sendMail(mailOptions);
+        return true;
+    }
+    catch (error) {
+        console.error('Error sending update email:', error);
+        return false;
+    }
 }
 //# sourceMappingURL=emailService.js.map

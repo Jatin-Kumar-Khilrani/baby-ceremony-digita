@@ -7,3 +7,5 @@ import './wishes';
 import './enhance-wish';
 import './backup';
 import './scheduledBackup';
+import './audio-wishes';
+import './text-to-speech';

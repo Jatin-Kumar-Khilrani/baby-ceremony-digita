@@ -142,8 +142,17 @@ export async function wishes(request: HttpRequest, context: InvocationContext): 
       const newWish = {
         id: Date.now().toString(),
         name: body.name,
-        message: body.message,
+        message: body.message || null,
         email: body.email || null,
+        gender: body.gender || undefined, // Gender for voice selection
+        defaultGender: body.defaultGender || undefined, // Admin override for auto-detection
+        audioUrl: body.audioUrl || null, // Audio recording URL
+        audioDuration: body.audioDuration || null, // Duration in seconds
+        hasAudio: !!body.audioUrl, // Boolean flag
+        approved: false, // Requires admin approval
+        moderatedBy: null,
+        moderatedAt: null,
+        rejectionReason: null,
         timestamp: Date.now()
       };
       

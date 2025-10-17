@@ -8,4 +8,6 @@ require("./wishes");
 require("./enhance-wish");
 require("./backup");
 require("./scheduledBackup");
+require("./audio-wishes");
+require("./text-to-speech");
 //# sourceMappingURL=index.js.map

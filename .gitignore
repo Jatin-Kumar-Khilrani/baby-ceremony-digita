@@ -13,6 +13,11 @@ dist-ssr
 *-dist
 *.local
 
+# Compiled API files (TypeScript builds)
+api/**/*.js
+api/**/*.js.map
+!api/package.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -47,6 +52,7 @@ ADD_GITHUB_SECRETS.md
 DEPLOYMENT_SUCCESS.md
 NEXT_STEPS_GUIDE.md
 ADMIN_CREDENTIALS.md
+DEPLOYMENT_GUIDE.md
 
 # Backup files with potential secrets
 .env.backup.*

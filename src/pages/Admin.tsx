@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AdminAuth } from '@/components/AdminAuth'
+import { TextToSpeech } from '@/components/TextToSpeech'
 import { toast } from 'sonner'
 import { 
   Users, 
@@ -18,6 +19,8 @@ import {
   Download, 
   CheckCircle, 
   XCircle,
+  Check,
+  X,
   Calendar,
   EnvelopeSimple,
   Phone as PhoneIcon,
@@ -73,33 +76,32 @@ function calculateMeals(rsvps: RSVP[]) {
       }
     }
     
-    // Nov 15th (main event day)
-    // Count everyone staying overnight (arrival on 14th or 15th, departure on 15th evening or later)
-    const staysFor15thBreakfast = arrival && arrival.getDate() <= 15
-    const staysFor15thLunch = arrival && arrival.getDate() <= 15
-    const staysFor15thDinner = arrival && arrival.getDate() <= 15
-    
-    if (staysFor15thBreakfast) {
-      // If arrived on 14th or before 10 AM on 15th
-      if (arrival.getDate() === 14 || 
-          (arrival.getDate() === 15 && arrival.getHours() < breakfastEnd)) {
+    // Nov 15th (main event day) - BREAKFAST
+    // Anyone who arrives BEFORE 10 AM on Nov 15 gets breakfast
+    if (arrival) {
+      const nov15Morning = new Date('2025-11-15T10:00:00')
+      if (arrival < nov15Morning) {
+        // Arrived before 10 AM Nov 15 = gets breakfast
         breakfast15 += guestCount
       }
     }
     
-    if (staysFor15thLunch) {
-      // If arrived before 2 PM on 15th or earlier
-      if (arrival.getDate() < 15 || 
-          (arrival.getDate() === 15 && arrival.getHours() < lunchEnd)) {
+    // Nov 15th - LUNCH
+    if (arrival) {
+      const nov15Lunch = new Date('2025-11-15T14:00:00')
+      if (arrival < nov15Lunch) {
+        // Arrived before 2 PM Nov 15 = gets lunch
         lunch15 += guestCount
       }
     }
     
-    if (staysFor15thDinner) {
-      // If arrived before 10 PM on 15th or earlier, and staying overnight (no departure on 15th)
+    // Nov 15th - DINNER
+    if (arrival) {
+      const nov15Dinner = new Date('2025-11-15T22:00:00')
       const departsBefore15Evening = departure && departure.getDate() === 15 && departure.getHours() < dinnerEnd
-      if (!departsBefore15Evening && 
-          (arrival.getDate() < 15 || (arrival.getDate() === 15 && arrival.getHours() < dinnerEnd))) {
+      
+      if (!departsBefore15Evening && arrival < nov15Dinner) {
+        // Arrived before 10 PM Nov 15 AND not leaving same evening = gets dinner
         dinner15 += guestCount
       }
     }
@@ -170,6 +172,17 @@ interface Wish {
   id: string
   name: string
   message: string
+  email?: string
+  gender?: 'male' | 'female' | 'other'
+  defaultGender?: 'male' | 'female' // Admin override for TTS auto-detection
+  audioUrl?: string | null
+  audioDuration?: number | null
+  hasAudio?: boolean
+  // Moderation fields
+  approved?: boolean
+  moderatedBy?: string
+  moderatedAt?: number
+  rejectionReason?: string
   timestamp: number
 }
 
@@ -427,6 +440,26 @@ function WishEditDialog({ wish, onUpdate }: { wish: Wish, onUpdate: (wish: Wish)
             />
           </div>
 
+          <div>
+            <Label htmlFor="defaultGender">Default Voice Gender (for TTS auto-detection)</Label>
+            <Select 
+              value={formData.defaultGender || 'auto'} 
+              onValueChange={(value) => setFormData({ ...formData, defaultGender: value === 'auto' ? undefined : value as 'male' | 'female' })}
+            >
+              <SelectTrigger id="defaultGender">
+                <SelectValue placeholder="Auto-detect from name" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">🤖 Auto-detect from name</SelectItem>
+                <SelectItem value="male">👨 Male Voice</SelectItem>
+                <SelectItem value="female">👩 Female Voice</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              Override auto-detection if the name doesn't match the person's gender
+            </p>
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
@@ -456,6 +489,11 @@ export default function Admin() {
   const rsvpSectionRef = useRef<HTMLDivElement>(null)
   const [backups, setBackups] = useState<any[]>([])
   const [loadingBackups, setLoadingBackups] = useState(false)
+  
+  // Audio amplification state for each wish
+  const [wishAmplification, setWishAmplification] = useState<Record<string, number>>({})
+  const [isAmplifying, setIsAmplifying] = useState<Record<string, boolean>>({})
+  const [amplifiedAudioUrls, setAmplifiedAudioUrls] = useState<Record<string, string>>({})
   const [previewBackup, setPreviewBackup] = useState<any>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [stats, setStats] = useState({
@@ -503,6 +541,18 @@ export default function Admin() {
       fetchAllData()
     }
   }, [isAuthenticated])
+
+  // Cleanup amplified audio URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(amplifiedAudioUrls).forEach(url => {
+        if (url) {
+          console.log('Admin Cleanup: Revoking amplified URL', url)
+          URL.revokeObjectURL(url)
+        }
+      })
+    }
+  }, [amplifiedAudioUrls])
 
   const handleLogout = () => {
     sessionStorage.removeItem('adminAuth')
@@ -1109,6 +1159,181 @@ export default function Admin() {
     } catch (error) {
       toast.error('Failed to delete wishes')
       console.error(error)
+    }
+  }
+
+  // Approve Wish
+  const approveWish = async (wishId: string) => {
+    try {
+      const updatedWishes = wishes.map(w => 
+        w.id === wishId 
+          ? { ...w, approved: true, moderatedBy: 'Admin', moderatedAt: Date.now(), rejectionReason: null }
+          : w
+      )
+      
+      const response = await fetch(`${API_BASE}/wishes?action=replace`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedWishes)
+      })
+
+      if (response.ok) {
+        toast.success('Wish approved! ✅')
+        fetchAllData()
+      }
+    } catch (error) {
+      toast.error('Failed to approve wish')
+      console.error(error)
+    }
+  }
+
+  // Reject Wish
+  const rejectWish = async (wishId: string, reason?: string) => {
+    try {
+      const updatedWishes = wishes.map(w => 
+        w.id === wishId 
+          ? { ...w, approved: false, moderatedBy: 'Admin', moderatedAt: Date.now(), rejectionReason: reason || 'Rejected by admin' }
+          : w
+      )
+      
+      const response = await fetch(`${API_BASE}/wishes?action=replace`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedWishes)
+      })
+
+      if (response.ok) {
+        toast.success('Wish rejected')
+        fetchAllData()
+      }
+    } catch (error) {
+      toast.error('Failed to reject wish')
+      console.error(error)
+    }
+  }
+
+  // Audio Amplification Functions
+  const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+    const numberOfChannels = buffer.numberOfChannels
+    const length = buffer.length * numberOfChannels * 2
+    const arrayBuffer = new ArrayBuffer(44 + length)
+    const view = new DataView(arrayBuffer)
+    const channels: Float32Array[] = []
+    let offset = 0
+    let pos = 0
+
+    // Write WAV header
+    const setUint16 = (data: number) => {
+      view.setUint16(pos, data, true)
+      pos += 2
+    }
+    const setUint32 = (data: number) => {
+      view.setUint32(pos, data, true)
+      pos += 4
+    }
+
+    // "RIFF" chunk descriptor
+    setUint32(0x46464952) // "RIFF"
+    setUint32(36 + length) // file length - 8
+    setUint32(0x45564157) // "WAVE"
+
+    // "fmt " sub-chunk
+    setUint32(0x20746d66) // "fmt "
+    setUint32(16) // chunk size
+    setUint16(1) // audio format (1 = PCM)
+    setUint16(numberOfChannels)
+    setUint32(buffer.sampleRate)
+    setUint32(buffer.sampleRate * 2 * numberOfChannels) // byte rate
+    setUint16(numberOfChannels * 2) // block align
+    setUint16(16) // bits per sample
+
+    // "data" sub-chunk
+    setUint32(0x61746164) // "data"
+    setUint32(length)
+
+    // Write interleaved data
+    for (let i = 0; i < numberOfChannels; i++) {
+      channels.push(buffer.getChannelData(i))
+    }
+
+    while (pos < arrayBuffer.byteLength) {
+      for (let i = 0; i < numberOfChannels; i++) {
+        let sample = Math.max(-1, Math.min(1, channels[i][offset]))
+        sample = sample < 0 ? sample * 0x8000 : sample * 0x7fff
+        view.setInt16(pos, sample, true)
+        pos += 2
+      }
+      offset++
+    }
+
+    return new Blob([arrayBuffer], { type: 'audio/wav' })
+  }
+
+  const amplifyWishAudio = async (wishId: string, gainValue: number) => {
+    const wish = wishes.find(w => w.id === wishId)
+    if (!wish?.audioUrl) {
+      toast.error('No audio found for this wish')
+      return
+    }
+
+    setIsAmplifying(prev => ({ ...prev, [wishId]: true }))
+
+    try {
+      // Fetch the audio file
+      const response = await fetch(wish.audioUrl)
+      const arrayBuffer = await response.arrayBuffer()
+
+      // Create audio context
+      const audioContext = new AudioContext()
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+
+      // Create offline context for processing
+      const offlineContext = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length,
+        audioBuffer.sampleRate
+      )
+
+      const source = offlineContext.createBufferSource()
+      source.buffer = audioBuffer
+
+      // Create gain node for amplification
+      const gainNode = offlineContext.createGain()
+      gainNode.gain.value = gainValue
+
+      // Connect nodes
+      source.connect(gainNode)
+      gainNode.connect(offlineContext.destination)
+
+      // Start processing
+      source.start(0)
+
+      // Render audio
+      const renderedBuffer = await offlineContext.startRendering()
+
+      // Convert back to blob
+      const wavBlob = audioBufferToWav(renderedBuffer)
+
+      // Create new URL for amplified audio
+      const newUrl = URL.createObjectURL(wavBlob)
+      console.log('Admin Amplification: Created new URL for wish', wishId, newUrl)
+
+      // Store the amplified URL
+      setAmplifiedAudioUrls(prev => {
+        // Revoke old URL if it exists
+        if (prev[wishId]) {
+          console.log('Admin Amplification: Revoking old URL', prev[wishId])
+          URL.revokeObjectURL(prev[wishId])
+        }
+        return { ...prev, [wishId]: newUrl }
+      })
+
+      toast.success(`Audio amplified to ${Math.round(gainValue * 100)}%`)
+    } catch (error) {
+      console.error('Amplification error:', error)
+      toast.error('Failed to amplify audio')
+    } finally {
+      setIsAmplifying(prev => ({ ...prev, [wishId]: false }))
     }
   }
 
@@ -1872,14 +2097,58 @@ export default function Admin() {
                             />
                             <div className="flex-1">
                               <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <Heart className="w-5 h-5 text-pink-500" weight="fill" />
                                   <h3 className="font-semibold">{wish.name}</h3>
+                                  {wish.hasAudio && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      🎙️ Audio
+                                    </Badge>
+                                  )}
+                                  {/* Moderation Status */}
+                                  {wish.approved === true && (
+                                    <Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-200">
+                                      ✅ Approved
+                                    </Badge>
+                                  )}
+                                  {wish.approved === false && (
+                                    <Badge className="text-xs bg-red-100 text-red-700 hover:bg-red-200">
+                                      ⛔ Pending
+                                    </Badge>
+                                  )}
+                                  {wish.approved === undefined && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      ⏳ Legacy
+                                    </Badge>
+                                  )}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-500 mr-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs text-gray-500">
                                     {formatDate(wish.timestamp)}
                                   </span>
+                                  {/* Moderation Actions */}
+                                  {wish.approved !== true && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => approveWish(wish.id)}
+                                      className="bg-green-600 hover:bg-green-700"
+                                      title="Approve wish"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                  {wish.approved !== false && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => rejectWish(wish.id)}
+                                      className="border-red-300 text-red-600 hover:bg-red-50"
+                                      title="Reject wish"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  )}
                                   <WishEditDialog wish={wish} onUpdate={updateWish} />
                                   <Button
                                     variant="destructive"
@@ -1890,9 +2159,110 @@ export default function Admin() {
                                   </Button>
                                 </div>
                               </div>
-                              <p className="text-gray-700 italic bg-pink-50 p-3 rounded-md">
-                                "{wish.message}"
-                              </p>
+                              
+                              {/* Audio Player - Show FIRST for moderation */}
+                              {wish.hasAudio && wish.audioUrl && (
+                                <div className="mb-3 space-y-3 bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border-2 border-purple-300">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-semibold text-purple-900">
+                                        🎙️ User Audio Recording
+                                      </span>
+                                      {wish.audioDuration && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {Math.floor(wish.audioDuration / 60)}:{(wish.audioDuration % 60).toString().padStart(2, '0')}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Audio Player */}
+                                  <audio 
+                                    key={amplifiedAudioUrls[wish.id] || wish.audioUrl}
+                                    src={amplifiedAudioUrls[wish.id] || wish.audioUrl}
+                                    controls 
+                                    controlsList="nodownload"
+                                    className="w-full"
+                                    preload="metadata"
+                                  />
+                                  
+                                  {/* Volume Amplification Controls */}
+                                  <div className="space-y-2 p-3 bg-purple-100/50 border border-purple-300 rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-sm font-medium text-purple-900">
+                                        🔊 Amplify Volume
+                                      </label>
+                                      <span className="text-xs text-purple-700 font-semibold">
+                                        {Math.round((wishAmplification[wish.id] || 1) * 100)}%
+                                      </span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="0.5"
+                                      max="3"
+                                      step="0.1"
+                                      value={wishAmplification[wish.id] || 1}
+                                      onChange={(e) => setWishAmplification(prev => ({ 
+                                        ...prev, 
+                                        [wish.id]: parseFloat(e.target.value) 
+                                      }))}
+                                      className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                      disabled={isAmplifying[wish.id]}
+                                      aria-label="Volume amplification slider"
+                                    />
+                                    <div className="flex items-center justify-between text-xs text-purple-600">
+                                      <span>50%</span>
+                                      <span>100% (Original)</span>
+                                      <span>300%</span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      onClick={() => amplifyWishAudio(wish.id, wishAmplification[wish.id] || 1)}
+                                      className="w-full bg-purple-600 hover:bg-purple-700"
+                                      size="sm"
+                                      disabled={isAmplifying[wish.id] || (wishAmplification[wish.id] || 1) === 1}
+                                    >
+                                      {isAmplifying[wish.id] ? 'Processing...' : 'Apply Amplification'}
+                                    </Button>
+                                    <p className="text-xs text-purple-700 italic">
+                                      Adjust slider and click Apply to change volume. Original audio is preserved.
+                                    </p>
+                                  </div>
+                                  
+                                  {/* Moderation Tips */}
+                                  <div className="flex items-start gap-2 text-xs text-purple-700">
+                                    <span>💡</span>
+                                    <div className="flex-1">
+                                      <p className="font-medium">Moderation Tips:</p>
+                                      <ul className="list-disc list-inside space-y-1 mt-1">
+                                        <li>Listen to full recording before approving</li>
+                                        <li>Use amplification if audio is too quiet</li>
+                                        <li>Use browser volume control for fine-tuning</li>
+                                        <li>Check for inappropriate content</li>
+                                      </ul>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Text Message */}
+                              {wish.message && (
+                                <p className="text-gray-700 italic bg-pink-50 p-3 rounded-md mb-3">
+                                  "{wish.message}"
+                                </p>
+                              )}
+                              
+                              {/* Text-to-Speech for TEXT wishes */}
+                              {wish.message && (
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                  <TextToSpeech 
+                                    text={wish.message} 
+                                    senderName={wish.name}
+                                    senderGender={wish.gender}
+                                    showVoiceSelector={true}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2261,8 +2631,22 @@ export default function Admin() {
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {previewBackup.data.wishes.map((wish: any, idx: number) => (
                       <div key={idx} className="border rounded p-3 bg-pink-50">
-                        <div className="font-medium">{wish.name}</div>
-                        <div className="text-sm text-gray-600 mt-1">{wish.message}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{wish.name}</div>
+                          {wish.hasAudio && (
+                            <Badge variant="secondary" className="text-xs">
+                              🎙️
+                            </Badge>
+                          )}
+                        </div>
+                        {wish.message && (
+                          <div className="text-sm text-gray-600 mt-1">{wish.message}</div>
+                        )}
+                        {wish.hasAudio && (
+                          <div className="text-xs text-purple-600 mt-1">
+                            Audio: {wish.audioDuration ? `${Math.floor(wish.audioDuration / 60)}:${(wish.audioDuration % 60).toString().padStart(2, '0')}` : 'Available'}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

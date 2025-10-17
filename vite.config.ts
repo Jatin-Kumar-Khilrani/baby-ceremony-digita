@@ -16,6 +16,14 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:7071',
+        changeOrigin: true,
+      }
+    }
+  },
   build: {
     chunkSizeWarningLimit: 1000, // Increase limit to 1000 kB
     rollupOptions: {

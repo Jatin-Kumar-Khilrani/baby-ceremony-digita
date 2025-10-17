@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rsvps = rsvps;
 const functions_1 = require("@azure/functions");
@@ -15,211 +6,273 @@ const storage_blob_1 = require("@azure/storage-blob");
 const emailService_1 = require("./src/emailService");
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const containerName = "ceremony-data";
-function getStorageData(blobName) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!connectionString) {
-            throw new Error("Azure Storage connection string not configured");
+async function getStorageData(blobName) {
+    if (!connectionString) {
+        throw new Error("Azure Storage connection string not configured");
+    }
+    const blobServiceClient = storage_blob_1.BlobServiceClient.fromConnectionString(connectionString);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    // Ensure container exists
+    await containerClient.createIfNotExists({
+        access: "blob"
+    });
+    const blobClient = containerClient.getBlobClient(blobName);
+    try {
+        const downloadResponse = await blobClient.download();
+        const downloaded = await streamToBuffer(downloadResponse.readableStreamBody);
+        return JSON.parse(downloaded.toString());
+    }
+    catch (error) {
+        if (error.statusCode === 404) {
+            return [];
         }
-        const blobServiceClient = storage_blob_1.BlobServiceClient.fromConnectionString(connectionString);
-        const containerClient = blobServiceClient.getContainerClient(containerName);
-        // Ensure container exists
-        yield containerClient.createIfNotExists({
-            access: "blob"
-        });
-        const blobClient = containerClient.getBlobClient(blobName);
-        try {
-            const downloadResponse = yield blobClient.download();
-            const downloaded = yield streamToBuffer(downloadResponse.readableStreamBody);
-            return JSON.parse(downloaded.toString());
-        }
-        catch (error) {
-            if (error.statusCode === 404) {
-                return [];
-            }
-            throw error;
+        throw error;
+    }
+}
+async function saveStorageData(blobName, data) {
+    if (!connectionString) {
+        throw new Error("Azure Storage connection string not configured");
+    }
+    const blobServiceClient = storage_blob_1.BlobServiceClient.fromConnectionString(connectionString);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    await containerClient.createIfNotExists({
+        access: "blob"
+    });
+    const blobClient = containerClient.getBlockBlobClient(blobName);
+    const content = JSON.stringify(data, null, 2);
+    await blobClient.upload(content, content.length, {
+        blobHTTPHeaders: {
+            blobContentType: "application/json"
         }
     });
 }
-function saveStorageData(blobName, data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!connectionString) {
-            throw new Error("Azure Storage connection string not configured");
-        }
-        const blobServiceClient = storage_blob_1.BlobServiceClient.fromConnectionString(connectionString);
-        const containerClient = blobServiceClient.getContainerClient(containerName);
-        yield containerClient.createIfNotExists({
-            access: "blob"
+async function streamToBuffer(readableStream) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        readableStream.on("data", (data) => {
+            chunks.push(data instanceof Buffer ? data : Buffer.from(data));
         });
-        const blobClient = containerClient.getBlockBlobClient(blobName);
-        const content = JSON.stringify(data, null, 2);
-        yield blobClient.upload(content, content.length, {
-            blobHTTPHeaders: {
-                blobContentType: "application/json"
-            }
+        readableStream.on("end", () => {
+            resolve(Buffer.concat(chunks));
         });
+        readableStream.on("error", reject);
     });
 }
-function streamToBuffer(readableStream) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            const chunks = [];
-            readableStream.on("data", (data) => {
-                chunks.push(data instanceof Buffer ? data : Buffer.from(data));
-            });
-            readableStream.on("end", () => {
-                resolve(Buffer.concat(chunks));
-            });
-            readableStream.on("error", reject);
-        });
-    });
-}
-function rsvps(request, context) {
-    return __awaiter(this, void 0, void 0, function* () {
-        context.log(`Http function processed request for url "${request.url}"`);
-        // Enable CORS
-        const headers = {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-            "Content-Type": "application/json"
-        };
-        // Handle OPTIONS request for CORS
-        if (request.method === "OPTIONS") {
-            return { status: 200, headers };
-        }
-        try {
-            if (request.method === "GET") {
-                const data = yield getStorageData("rsvps.json");
-                // Ensure data is always an array
-                const rsvpsArray = Array.isArray(data) ? data : (data ? [data] : []);
-                return {
-                    status: 200,
-                    headers,
-                    body: JSON.stringify(rsvpsArray)
-                };
+async function rsvps(request, context) {
+    context.log(`Http function processed request for url "${request.url}"`);
+    // Enable CORS
+    const headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    };
+    // Handle OPTIONS request for CORS
+    if (request.method === "OPTIONS") {
+        return { status: 200, headers };
+    }
+    try {
+        if (request.method === "GET") {
+            const searchEmail = request.query.get('email');
+            const data = await getStorageData("rsvps.json");
+            // Ensure data is always an array
+            const rsvpsArray = Array.isArray(data) ? data : (data ? [data] : []);
+            // DEBUG LOGGING
+            context.log('=== GET REQUEST DEBUG ===');
+            context.log('Search email:', searchEmail);
+            context.log('Data from storage:', JSON.stringify(data));
+            context.log('RSVPs array:', JSON.stringify(rsvpsArray));
+            context.log('Array length:', rsvpsArray.length);
+            if (rsvpsArray.length > 0) {
+                context.log('Emails in storage:', rsvpsArray.map((r) => r.email));
             }
-            else if (request.method === "POST") {
-                // Check if this is a "search" request (finding existing RSVP to send PIN)
-                const isSearchRequest = request.query.get('action') === 'search';
-                const isReplaceRequest = request.query.get('action') === 'replace';
-                const searchEmail = request.query.get('email');
-                // Parse body only if not a search request
-                let body = null;
-                if (!isSearchRequest) {
-                    try {
-                        body = yield request.json();
-                    }
-                    catch (e) {
-                        return {
-                            status: 400,
-                            headers,
-                            body: JSON.stringify({ error: "Invalid JSON in request body" })
-                        };
-                    }
-                }
-                if (isSearchRequest && searchEmail) {
-                    // User is searching for their RSVP - send PIN if found
-                    const existingData = yield getStorageData("rsvps.json");
-                    const existingRsvp = existingData.find((r) => r.email && r.email.toLowerCase() === searchEmail.toLowerCase());
-                    if (existingRsvp) {
-                        // Generate new PIN each time they search (for security)
-                        const pin = (0, emailService_1.generatePin)();
-                        existingRsvp.pin = pin;
-                        existingRsvp.pinSentAt = new Date().toISOString();
-                        // Send PIN via email
-                        try {
-                            const emailSent = yield (0, emailService_1.sendPinEmail)(existingRsvp.email, existingRsvp.name, pin);
-                            if (emailSent) {
-                                context.log(`PIN email sent to ${existingRsvp.email} for RSVP search`);
-                                existingRsvp.pinEmailSent = true;
-                            }
-                            else {
-                                context.log(`Failed to send PIN email to ${existingRsvp.email}`);
-                                existingRsvp.pinEmailSent = false;
-                            }
-                        }
-                        catch (emailError) {
-                            context.log(`Error sending PIN email to ${existingRsvp.email}: ${emailError}`);
-                            existingRsvp.pinEmailSent = false;
-                        }
-                        // Save updated data with new PIN
-                        yield saveStorageData("rsvps.json", existingData);
-                        return {
-                            status: 200,
-                            headers,
-                            body: JSON.stringify({
-                                success: true,
-                                found: true,
-                                message: 'PIN sent to your email'
-                            })
-                        };
-                    }
-                    else {
-                        return {
-                            status: 404,
-                            headers,
-                            body: JSON.stringify({
-                                success: false,
-                                found: false,
-                                message: 'No RSVP found with that email'
-                            })
-                        };
-                    }
-                }
-                // Check if this is a replace request (delete/edit - replace entire array)
-                if (isReplaceRequest) {
-                    if (!body || !Array.isArray(body)) {
-                        return {
-                            status: 400,
-                            headers,
-                            body: JSON.stringify({ error: "Replace action requires an array of RSVPs" })
-                        };
-                    }
-                    // Replace entire array
-                    yield saveStorageData("rsvps.json", body);
+            // If email query parameter is provided, return only that specific RSVP
+            if (searchEmail) {
+                context.log('Searching for email:', searchEmail.toLowerCase());
+                const found = rsvpsArray.find((rsvp) => {
+                    const match = rsvp.email && rsvp.email.toLowerCase() === searchEmail.toLowerCase();
+                    context.log(`Comparing "${rsvp.email?.toLowerCase()}" === "${searchEmail.toLowerCase()}" = ${match}`);
+                    return match;
+                });
+                context.log('Found result:', found ? 'YES' : 'NO');
+                if (found) {
+                    context.log('Returning 200 with RSVP:', JSON.stringify(found));
                     return {
                         status: 200,
                         headers,
-                        body: JSON.stringify({ success: true })
+                        body: JSON.stringify(found)
                     };
                 }
-                // Normal RSVP submission - DO NOT send PIN
-                // Users will request PIN when they want to edit/delete
-                if (!body) {
+                else {
+                    context.log('Returning 404 - not found');
+                    return {
+                        status: 404,
+                        headers,
+                        body: JSON.stringify({ error: "RSVP not found for this email" })
+                    };
+                }
+            }
+            // Otherwise return all RSVPs (for admin)
+            return {
+                status: 200,
+                headers,
+                body: JSON.stringify(rsvpsArray)
+            };
+        }
+        else if (request.method === "POST") {
+            // Check if this is a "search" request (finding existing RSVP to send PIN)
+            const isSearchRequest = request.query.get('action') === 'search';
+            const isReplaceRequest = request.query.get('action') === 'replace';
+            const searchEmail = request.query.get('email');
+            // Parse body only if not a search request
+            let body = null;
+            if (!isSearchRequest) {
+                try {
+                    body = await request.json();
+                }
+                catch (e) {
                     return {
                         status: 400,
                         headers,
-                        body: JSON.stringify({ error: "Request body is required for RSVP submission" })
+                        body: JSON.stringify({ error: "Invalid JSON in request body" })
                     };
                 }
-                // Get existing RSVPs and add the new one
-                const existingData = yield getStorageData("rsvps.json");
+            }
+            if (isSearchRequest && searchEmail) {
+                // User is searching for their RSVP - send PIN if found
+                const existingData = await getStorageData("rsvps.json");
                 const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
-                rsvpsArray.push(body);
-                yield saveStorageData("rsvps.json", rsvpsArray);
+                const existingRsvp = rsvpsArray.find((r) => r.email && r.email.toLowerCase() === searchEmail.toLowerCase());
+                if (existingRsvp) {
+                    // Generate new PIN each time they search (for security)
+                    const pin = (0, emailService_1.generatePin)();
+                    existingRsvp.pin = pin;
+                    existingRsvp.pinSentAt = new Date().toISOString();
+                    context.log(`Found RSVP for ${searchEmail}, sending PIN...`);
+                    // Send PIN via email
+                    try {
+                        context.log(`Calling sendPinEmail for ${existingRsvp.email}`);
+                        const emailSent = await (0, emailService_1.sendPinEmail)(existingRsvp.email, existingRsvp.name, pin);
+                        if (emailSent) {
+                            context.log(`✅ PIN email sent successfully to ${existingRsvp.email}`);
+                            existingRsvp.pinEmailSent = true;
+                        }
+                        else {
+                            context.log(`❌ Failed to send PIN email to ${existingRsvp.email}`);
+                            existingRsvp.pinEmailSent = false;
+                        }
+                    }
+                    catch (emailError) {
+                        context.log(`❌ Error sending PIN email to ${existingRsvp.email}:`, emailError);
+                        context.log('Email error details:', {
+                            message: emailError.message,
+                            code: emailError.code,
+                            stack: emailError.stack
+                        });
+                        existingRsvp.pinEmailSent = false;
+                    }
+                    // CRITICAL FIX: Save the entire array, not just the single RSVP
+                    await saveStorageData("rsvps.json", rsvpsArray);
+                    return {
+                        status: 200,
+                        headers,
+                        body: JSON.stringify({
+                            success: true,
+                            found: true,
+                            message: existingRsvp.pinEmailSent ? 'PIN sent to your email' : 'RSVP found but email failed to send',
+                            emailSent: existingRsvp.pinEmailSent
+                        })
+                    };
+                }
+                else {
+                    return {
+                        status: 404,
+                        headers,
+                        body: JSON.stringify({
+                            success: false,
+                            found: false,
+                            message: 'No RSVP found with that email'
+                        })
+                    };
+                }
+            }
+            // Check if this is a replace request (delete/edit - replace entire array)
+            if (isReplaceRequest) {
+                if (!body || !Array.isArray(body)) {
+                    return {
+                        status: 400,
+                        headers,
+                        body: JSON.stringify({ error: "Replace action requires an array of RSVPs" })
+                    };
+                }
+                // CRITICAL FIX: Validate that the array is not empty (unless intentionally deleting all)
+                // Get existing data to compare
+                const existingData = await getStorageData("rsvps.json");
+                const existingRsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+                // If we have existing RSVPs and the new array is empty or significantly smaller, log a warning
+                if (existingRsvpsArray.length > 0) {
+                    if (body.length === 0) {
+                        context.log('⚠️ WARNING: Attempting to replace all RSVPs with empty array');
+                        context.log('Existing RSVPs count:', existingRsvpsArray.length);
+                        context.log('This will DELETE all RSVPs!');
+                    }
+                    else if (body.length < existingRsvpsArray.length * 0.5) {
+                        // If new array is less than 50% of old array, log warning but allow (could be legitimate deletions)
+                        context.log('⚠️ WARNING: Significant reduction in RSVP count');
+                        context.log('Previous count:', existingRsvpsArray.length);
+                        context.log('New count:', body.length);
+                        context.log('Reduction:', existingRsvpsArray.length - body.length);
+                    }
+                }
+                // Replace entire array
+                await saveStorageData("rsvps.json", body);
+                context.log('✅ RSVPs replaced successfully');
+                context.log('Final count:', body.length);
                 return {
                     status: 200,
                     headers,
-                    body: JSON.stringify({ success: true })
+                    body: JSON.stringify({ success: true, count: body.length })
                 };
             }
-            else {
+            // Normal RSVP submission - DO NOT send PIN
+            // Users will request PIN when they want to edit/delete
+            if (!body) {
                 return {
-                    status: 405,
+                    status: 400,
                     headers,
-                    body: JSON.stringify({ error: "Method not allowed" })
+                    body: JSON.stringify({ error: "Request body is required for RSVP submission" })
                 };
             }
-        }
-        catch (error) {
-            context.error("Error processing request:", error);
+            // Get existing RSVPs and add the new one
+            const existingData = await getStorageData("rsvps.json");
+            const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+            rsvpsArray.push(body);
+            await saveStorageData("rsvps.json", rsvpsArray);
             return {
-                status: 500,
+                status: 200,
                 headers,
-                body: JSON.stringify({ error: error.message })
+                body: JSON.stringify({ success: true })
             };
         }
-    });
+        else {
+            return {
+                status: 405,
+                headers,
+                body: JSON.stringify({ error: "Method not allowed" })
+            };
+        }
+    }
+    catch (error) {
+        context.error("Error processing request:", error);
+        return {
+            status: 500,
+            headers,
+            body: JSON.stringify({ error: error.message })
+        };
+    }
 }
 functions_1.app.http('rsvps', {
     methods: ['GET', 'POST', 'OPTIONS'],

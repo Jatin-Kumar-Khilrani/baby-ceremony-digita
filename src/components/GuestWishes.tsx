@@ -7,12 +7,26 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Heart, PaperPlaneTilt, Star, Sparkle, ArrowClockwise, MagnifyingGlass } from '@phosphor-icons/react'
+import { AudioRecorder } from '@/components/AudioRecorder'
+import { TextToSpeech } from '@/components/TextToSpeech'
+import { BackgroundMusicPlayer } from '@/components/BackgroundMusicPlayer'
+import { AudioProvider } from '@/contexts/AudioContext'
 
 interface Wish {
   id: string
   name: string
   message: string
   email?: string
+  gender?: 'male' | 'female' | 'other'
+  defaultGender?: 'male' | 'female' // Admin override for TTS
+  audioUrl?: string | null
+  audioDuration?: number | null
+  hasAudio?: boolean
+  // Moderation fields
+  approved?: boolean
+  moderatedBy?: string
+  moderatedAt?: number
+  rejectionReason?: string
   timestamp: number
 }
 
@@ -25,10 +39,14 @@ export default function GuestWishes() {
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [enhancedMessage, setEnhancedMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioDuration, setAudioDuration] = useState<number | null>(null)
+  const [hasAlreadySubmitted, setHasAlreadySubmitted] = useState(false)
   const [wishData, setWishData] = useState({
     name: '',
     email: '',
-    message: ''
+    message: '',
+    gender: '' as 'male' | 'female' | 'other' | ''
   })
 
   // Fetch wishes from backend
@@ -54,11 +72,45 @@ export default function GuestWishes() {
     fetchWishes()
   }, [])
 
+  // Check if email has already submitted a wish
+  const checkEmailExists = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setHasAlreadySubmitted(false)
+      return
+    }
+
+    try {
+      // Check against the backend to see if email exists
+      const response = await fetch(`${API_BASE_URL}/wishes`)
+      if (response.ok) {
+        const allWishes = await response.json()
+        const emailExists = Array.isArray(allWishes) && allWishes.some(
+          (w: Wish) => w.email?.toLowerCase() === email.toLowerCase()
+        )
+        setHasAlreadySubmitted(emailExists)
+        
+        if (emailExists) {
+          toast.warning('This email has already been used to submit a wish', {
+            description: 'Each person can only submit one wish. Please use a different email if you want to submit another wish.'
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error checking email:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!wishData.name || !wishData.message) {
-      toast.error('Please fill in both name and message')
+    if (!wishData.name) {
+      toast.error('Please enter your name')
+      return
+    }
+
+    // Allow audio-only OR text-only OR both
+    if (!wishData.message && !audioUrl) {
+      toast.error('Please either write a message or record an audio wish (or both!)')
       return
     }
 
@@ -78,22 +130,31 @@ export default function GuestWishes() {
         body: JSON.stringify({
           name: wishData.name,
           email: wishData.email,
-          message: wishData.message
+          message: wishData.message,
+          gender: wishData.gender || undefined,
+          audioUrl: audioUrl,
+          audioDuration: audioDuration,
+          hasAudio: !!audioUrl
         })
       })
 
       if (response.ok) {
         const newWish = await response.json()
-        setWishes(prev => [...(Array.isArray(prev) ? prev : []), newWish])
+        // Don't add to local state immediately - will appear after admin approval
         
-        toast.success('Thank you for your beautiful wishes!')
+        toast.success('Thank you for your wishes! 🙏', {
+          description: 'Your wish will appear after admin approval (usually within a few hours)'
+        })
         
         setWishData({
           name: '',
           email: '',
-          message: ''
+          message: '',
+          gender: ''
         })
         setEnhancedMessage('')
+        setAudioUrl(null)
+        setAudioDuration(null)
       } else if (response.status === 409) {
         const data = await response.json()
         toast.error(data.error || 'You have already submitted a wish')
@@ -154,6 +215,12 @@ export default function GuestWishes() {
     setEnhancedMessage('')
   }
 
+  const handleAudioRecorded = (url: string, duration: number) => {
+    setAudioUrl(url)
+    setAudioDuration(duration)
+    toast.success('Audio recorded successfully!')
+  }
+
   const formatDate = (timestamp: number | undefined) => {
     if (!timestamp || isNaN(timestamp)) {
       return 'Recently'
@@ -170,8 +237,11 @@ export default function GuestWishes() {
     }
   }
 
-  // Filter wishes based on search query
+  // Filter wishes based on search query and approval status
   const filteredWishes = wishes.filter(wish => {
+    // Only show approved wishes to public (undefined means legacy data, show it)
+    if (wish.approved === false) return false
+    
     if (!searchQuery.trim()) return true
     const query = searchQuery.toLowerCase()
     return (
@@ -181,9 +251,10 @@ export default function GuestWishes() {
   })
 
   return (
-    <div className="space-y-6">
-      {/* Add Wish Form */}
-      <Card className="border-accent/30">
+    <AudioProvider>
+      <div className="space-y-6">
+        {/* Add Wish Form */}
+        <Card className="border-accent/30">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-script text-primary flex items-center justify-center gap-2">
             <Heart size={24} className="text-accent" />
@@ -192,6 +263,13 @@ export default function GuestWishes() {
           <p className="text-center text-muted-foreground">
             Leave your heartfelt wishes for baby Parv and his family
           </p>
+          {/* Mobile Compatibility Info */}
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800">
+              📱 <strong>Mobile Users:</strong> Audio recording works on Chrome Android, Safari iOS (14.3+), and Samsung Internet. 
+              Text-to-speech works on most mobile browsers!
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -212,27 +290,68 @@ export default function GuestWishes() {
                 id="wish-email"
                 type="email"
                 value={wishData.email}
-                onChange={(e) => setWishData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => {
+                  setWishData(prev => ({ ...prev, email: e.target.value }))
+                  // Check if email already exists when user finishes typing
+                  const email = e.target.value
+                  if (email.includes('@') && email.includes('.')) {
+                    checkEmailExists(email)
+                  } else {
+                    setHasAlreadySubmitted(false)
+                  }
+                }}
+                onBlur={(e) => checkEmailExists(e.target.value)}
                 placeholder="your.email@example.com"
                 required
               />
               <p className="text-xs text-muted-foreground">
                 Required to prevent duplicate wishes. One wish per person.
               </p>
+              {hasAlreadySubmitted && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800 font-medium">
+                    ⚠️ This email has already been used to submit a wish
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Each person can submit only one wish. If you need to update your wish, please contact the admin.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="wish-gender">Gender (Optional - for voice selection)</Label>
+              <select
+                id="wish-gender"
+                value={wishData.gender}
+                onChange={(e) => setWishData(prev => ({ ...prev, gender: e.target.value as 'male' | 'female' | 'other' | '' }))}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Select your gender for voice selection"
+                disabled={hasAlreadySubmitted}
+              >
+                <option value="">Prefer not to say</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                🎭 Helps us select the right voice (male/female) when reading your wish aloud
+              </p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="wish-message">Your Wishes & Blessings *</Label>
+              <Label htmlFor="wish-message">Your Wishes & Blessings (Optional if recording audio)</Label>
               <Textarea
                 id="wish-message"
                 value={wishData.message}
                 onChange={(e) => setWishData(prev => ({ ...prev, message: e.target.value }))}
                 placeholder="Share your heartfelt wishes, blessings, and hopes for baby Parv's bright future..."
                 rows={4}
-                required
+                disabled={hasAlreadySubmitted}
               />
               <p className="text-xs text-muted-foreground">
-                💬 Supports: English, Hindi (हिंदी), Marwadi, Rajasthani, Sindhi (in English or سنڌي)
+                💬 Supports: English, Hindi (हिंदी), Marwadi, Rajasthani, Sindhi (in English or سنڌي)<br />
+                ✨ You can write text, record audio, or do both!
               </p>
               <div className="flex gap-2">
                 <Button 
@@ -240,13 +359,81 @@ export default function GuestWishes() {
                   variant="outline" 
                   size="sm"
                   onClick={handleEnhance}
-                  disabled={isEnhancing || !wishData.email || !wishData.message || wishData.message.length < 5}
+                  disabled={isEnhancing || !wishData.email || !wishData.message || wishData.message.length < 5 || hasAlreadySubmitted}
                   className="text-purple-600 border-purple-300 hover:bg-purple-50"
                 >
                   <Sparkle size={16} className="mr-2" />
                   {isEnhancing ? 'Enhancing...' : 'Enhance with AI ✨'}
                 </Button>
               </div>
+            </div>
+
+            {/* Audio Recording */}
+            <div className="space-y-2">
+              <Label htmlFor="wish-audio">🎙️ Or Record an Audio Wish (Optional)</Label>
+              {hasAlreadySubmitted ? (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                  <p className="text-sm text-gray-600">
+                    🚫 Audio recording is disabled because this email has already submitted a wish
+                  </p>
+                </div>
+              ) : (
+                <AudioRecorder 
+                  onAudioRecorded={handleAudioRecorded}
+                  maxDuration={180}
+                />
+              )}
+              {audioUrl && audioDuration && (
+                <div className="mt-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xl">🎙️</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-green-900">Audio Recorded Successfully!</p>
+                        <p className="text-xs text-green-700">
+                          Duration: {Math.floor(audioDuration / 60)}:{(audioDuration % 60).toString().padStart(2, '0')}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAudioUrl(null)
+                        setAudioDuration(null)
+                        toast.info('Audio removed. You can record again if needed.')
+                      }}
+                      className="text-green-700 hover:text-green-900 hover:bg-green-100"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  
+                  {/* Audio Preview with Volume Control */}
+                  <div className="space-y-2 pt-2 border-t border-green-200">
+                    <Label className="text-sm text-green-900">Preview & Adjust Volume:</Label>
+                    <audio 
+                      src={audioUrl} 
+                      controls 
+                      className="w-full"
+                      preload="metadata"
+                    />
+                    <p className="text-xs text-green-600 italic">
+                      🔊 Use the volume control in the player to test and adjust playback volume
+                    </p>
+                  </div>
+                  
+                  <p className="text-xs text-green-600 italic">
+                    ✅ Your audio will be included when you submit the wish
+                  </p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                💡 You can record audio, write text, or both! Max 3 minutes.
+              </p>
             </div>
 
             {enhancedMessage && (
@@ -284,9 +471,13 @@ export default function GuestWishes() {
               </Card>
             )}
 
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" 
+              disabled={isSubmitting || hasAlreadySubmitted}
+            >
               <PaperPlaneTilt size={18} className="mr-2" />
-              {isSubmitting ? 'Sending...' : 'Send Wishes'}
+              {hasAlreadySubmitted ? 'Already Submitted' : isSubmitting ? 'Sending...' : 'Send Wishes'}
             </Button>
           </form>
         </CardContent>
@@ -325,14 +516,60 @@ export default function GuestWishes() {
                     <div className="flex items-center gap-2">
                       <Heart size={16} className="text-accent mt-1" />
                       <span className="font-medium text-primary">{wish.name}</span>
+                      {wish.hasAudio && (
+                        <Badge variant="secondary" className="text-xs">
+                          🎙️ Audio
+                        </Badge>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(wish.timestamp)}
                     </span>
                   </div>
-                  <p className="text-foreground leading-relaxed italic">
-                    "{wish.message}"
-                  </p>
+                  
+                  {/* Text Message */}
+                  {wish.message && (
+                    <div className="space-y-2">
+                      <p className="text-foreground leading-relaxed italic">
+                        "{wish.message}"
+                      </p>
+                      {/* TTS for text (even if has audio) */}
+                      <TextToSpeech 
+                        text={wish.message} 
+                        senderName={wish.name}
+                        senderGender={wish.defaultGender || wish.gender} // Admin override takes precedence
+                        showVoiceSelector={true}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Audio Player (can coexist with text) */}
+                  {wish.hasAudio && wish.audioUrl && (
+                    <div className={`${wish.message ? 'mt-4' : 'mt-2'} space-y-2 bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded-lg border border-purple-200`}>
+                      <p className="text-xs font-semibold text-purple-700 mb-2">
+                        🎙️ Audio Recording
+                        {wish.audioDuration && ` (${Math.floor(wish.audioDuration / 60)}:${(wish.audioDuration % 60).toString().padStart(2, '0')})`}
+                      </p>
+                      <audio 
+                        src={wish.audioUrl} 
+                        controls 
+                        className="w-full"
+                        preload="metadata"
+                      />
+                      {wish.message && (
+                        <p className="text-xs text-muted-foreground italic">
+                          💝 This wish includes both text and audio message!
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Audio-only indicator */}
+                  {!wish.message && wish.hasAudio && (
+                    <p className="text-xs text-muted-foreground italic mt-2">
+                      🎙️ Audio-only wish
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -405,6 +642,10 @@ export default function GuestWishes() {
           </p>
         </CardContent>
       </Card>
-    </div>
+
+      {/* Background Music Player */}
+      <BackgroundMusicPlayer autoPlay={false} defaultVolume={0.25} />
+      </div>
+    </AudioProvider>
   )
 }
