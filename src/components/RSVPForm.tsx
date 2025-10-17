@@ -43,6 +43,7 @@ interface RSVP {
   roomNumber?: string // Room 1-7
   transportDetails?: string
   adminNotes?: string
+  allowDuplicateSubmission?: boolean // Admin privilege to bypass duplicate check
 }
 
 interface RSVPFormProps {
@@ -422,22 +423,8 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     }
 
     if (editingRsvp) {
-      // CRITICAL FIX: Ensure we have the complete RSVPs array before updating
-      if (!rsvps || !Array.isArray(rsvps) || rsvps.length === 0) {
-        toast.error('Unable to update RSVP. Please refresh the page and try again.')
-        console.error('RSVPs array is invalid:', rsvps)
-        return
-      }
-
-      // Verify the RSVP being edited exists in the current array
-      const existsInArray = rsvps.some(r => r.id === editingRsvp.id)
-      if (!existsInArray) {
-        toast.error('RSVP not found in current data. Please refresh and try again.')
-        console.error('Editing RSVP not found in array:', editingRsvp.id)
-        return
-      }
-
       // Update existing RSVP
+      // For editing, we don't need the full array since we'll use the API endpoint
       const updatedRSVP: RSVP = {
         ...editingRsvp,
         name: formData.name,
@@ -453,32 +440,48 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         transportMode: formData.transportMode || undefined
       }
 
-      // Create the updated array with all RSVPs preserved
-      const updatedRsvpsArray = rsvps.map(r => r.id === editingRsvp.id ? updatedRSVP : r)
-      
-      // Verify no data loss before sending to backend
-      if (updatedRsvpsArray.length !== rsvps.length) {
-        toast.error('Data integrity error. Please refresh and try again.')
-        console.error('Array length mismatch:', {
-          original: rsvps.length,
-          updated: updatedRsvpsArray.length
-        })
-        return
-      }
-
-      // Save to backend
+      // Save to backend - let backend handle the array update
       try {
-        const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedRsvpsArray)
-        })
+        // If we have the full rsvps array, use replace action
+        if (rsvps && Array.isArray(rsvps) && rsvps.length > 0) {
+          const updatedRsvpsArray = rsvps.map(r => r.id === editingRsvp.id ? updatedRSVP : r)
+          
+          const response = await fetch(`${API_BASE}/rsvps?action=replace`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedRsvpsArray)
+          })
 
-        if (!response.ok) {
-          throw new Error('Failed to update RSVP')
+          if (!response.ok) {
+            throw new Error('Failed to update RSVP')
+          }
+
+          setRSVPs(prev => (prev || []).map(r => r.id === editingRsvp.id ? updatedRSVP : r))
+        } else {
+          // Fallback: Update single RSVP via PUT
+          const response = await fetch(`${API_BASE}/rsvps`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedRSVP)
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to update RSVP')
+          }
+
+          // Optimistically update local state
+          setRSVPs(prev => {
+            const prevArray = prev || []
+            const index = prevArray.findIndex(r => r.id === editingRsvp.id)
+            if (index >= 0) {
+              const newArray = [...prevArray]
+              newArray[index] = updatedRSVP
+              return newArray
+            }
+            return [...prevArray, updatedRSVP]
+          })
         }
-
-        setRSVPs(prev => (prev || []).map(r => r.id === editingRsvp.id ? updatedRSVP : r))
+        
         toast.success('RSVP updated successfully!')
         setEditingRsvp(null)
       } catch (error) {
@@ -512,7 +515,8 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         return false
       })
       
-      if (existing) {
+      // Check if existing RSVP has duplicate submission privilege
+      if (existing && !existing.allowDuplicateSubmission) {
         toast.error(
           `This family has already submitted an RSVP. Search for "${existing.name}" below to edit it.`,
           { duration: 6000 }

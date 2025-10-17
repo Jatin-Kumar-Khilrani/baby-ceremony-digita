@@ -166,6 +166,7 @@ interface RSVP {
   roomNumber?: string
   transportDetails?: string
   adminNotes?: string
+  allowDuplicateSubmission?: boolean // Admin privilege to bypass duplicate check
 }
 
 interface Wish {
@@ -379,6 +380,22 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
                     onChange={(e) => setFormData({ ...formData, adminNotes: e.target.value })}
                     rows={2}
                   />
+                </div>
+
+                <div className="flex items-center space-x-2 pt-2 border-t">
+                  <Checkbox
+                    id="allowDuplicateSubmission"
+                    checked={formData.allowDuplicateSubmission || false}
+                    onCheckedChange={(checked) => setFormData({ ...formData, allowDuplicateSubmission: checked as boolean })}
+                  />
+                  <Label htmlFor="allowDuplicateSubmission" className="cursor-pointer">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Allow Duplicate Submission</span>
+                      <span className="text-xs text-gray-500 font-normal">
+                        Bypass email/phone duplicate check (for VIPs, family, corrections)
+                      </span>
+                    </div>
+                  </Label>
                 </div>
               </div>
             </div>
@@ -1167,7 +1184,15 @@ export default function Admin() {
     try {
       const updatedWishes = wishes.map(w => 
         w.id === wishId 
-          ? { ...w, approved: true, moderatedBy: 'Admin', moderatedAt: Date.now(), rejectionReason: null }
+          ? { 
+              ...w, 
+              approved: true, 
+              moderatedBy: 'Admin', 
+              moderatedAt: Date.now(), 
+              rejectionReason: null
+              // IMPORTANT: Preserve defaultGender if it was set by admin
+              // This is already in the spread (...w), so no need to explicitly add it
+            }
           : w
       )
       
@@ -1858,6 +1883,14 @@ export default function Admin() {
                                       <Users className="w-3 h-3 mr-1" />
                                       {rsvp.guests} {rsvp.guests === 1 ? 'guest' : 'guests'}
                                     </Badge>
+                                    {rsvp.allowDuplicateSubmission && (
+                                      <Badge className="bg-amber-100 text-amber-800 text-xs">
+                                        <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                        </svg>
+                                        Bypass Enabled
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
@@ -2255,10 +2288,15 @@ export default function Admin() {
                               {/* Text-to-Speech for TEXT wishes */}
                               {wish.message && (
                                 <div className="mt-3 pt-3 border-t border-gray-200">
+                                  {wish.defaultGender && (
+                                    <div className="mb-2 px-3 py-1 bg-purple-100 border border-purple-300 rounded text-xs font-medium text-purple-700">
+                                      🎭 Admin Voice Override: {wish.defaultGender === 'male' ? '👨 Male' : '👩 Female'}
+                                    </div>
+                                  )}
                                   <TextToSpeech 
                                     text={wish.message} 
                                     senderName={wish.name}
-                                    senderGender={wish.gender}
+                                    senderGender={wish.defaultGender || wish.gender}
                                     showVoiceSelector={true}
                                   />
                                 </div>
@@ -2615,6 +2653,8 @@ export default function Admin() {
                           <th className="p-2 text-left">Email</th>
                           <th className="p-2 text-left">Guests</th>
                           <th className="p-2 text-left">Attending</th>
+                          <th className="p-2 text-left">Room</th>
+                          <th className="p-2 text-left">Admin States</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2629,6 +2669,26 @@ export default function Admin() {
                               ) : (
                                 <XCircle className="w-4 h-4 text-red-500" />
                               )}
+                            </td>
+                            <td className="p-2">
+                              {rsvp.roomNumber && (
+                                <Badge variant="outline" className="text-xs">
+                                  {rsvp.roomNumber}
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="p-2">
+                              <div className="flex flex-wrap gap-1">
+                                {rsvp.transportNeeded && (
+                                  <Badge variant="outline" className="text-xs bg-blue-50">🚗 Transport</Badge>
+                                )}
+                                {rsvp.allowDuplicateSubmission && (
+                                  <Badge variant="outline" className="text-xs bg-amber-50">🔑 Bypass</Badge>
+                                )}
+                                {rsvp.adminNotes && (
+                                  <Badge variant="outline" className="text-xs bg-gray-50">📝 Notes</Badge>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -2651,6 +2711,21 @@ export default function Admin() {
                             {(wish.hasAudio || wish.audioUrl) && (
                               <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
                                 🎙️ Audio
+                              </Badge>
+                            )}
+                            {wish.defaultGender && (
+                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                                🎤 {wish.defaultGender === 'male' ? '♂️ Male' : '♀️ Female'} Voice
+                              </Badge>
+                            )}
+                            {wish.approved === true && (
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                ✓ Approved
+                              </Badge>
+                            )}
+                            {wish.approved === false && (
+                              <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">
+                                ✗ Rejected
                               </Badge>
                             )}
                           </div>
