@@ -128,7 +128,14 @@ YOUR TASK:
    - Examples: "Lakdi ki kathi...", "Chanda hai tu...", "Nanha munna rahi hoon..."
    - Adapt song lyrics to baby Parv's context when appropriate
    - Keep the musical/poetic essence of the original
-4. Enhance in THE EXACT SAME LANGUAGE and SCRIPT as input
+4. 📝 SHAYARI/POETRY RECOGNITION:
+   - Detect poetic style: rhyming couplets, urdu poetry, Hindi shayari
+   - Common patterns: "Zindagi...", "Khuda kare...", "Dua hai...", "Mubarak ho..."
+   - Maintain poetic meter and rhyme scheme
+   - Use poetic vocabulary: "Noor" (light), "Sitara" (star), "Mehfil" (gathering)
+   - Keep elegant, flowing language
+   - Add appropriate poetry indicators when relevant
+5. Enhance in THE EXACT SAME LANGUAGE and SCRIPT as input
 5. Fix grammar and spelling in that language
 6. ⭐ PRESERVE THE ORIGINAL SENTIMENT - This is CRITICAL:
    - Identify the core emotion: joy, blessing, prayer, love, congratulations
@@ -214,7 +221,16 @@ Output: "Lakdi ki kathi, kathi pe ghoda 🎵👶 Nanhe Parv ki zindagi mein khus
 Input: "Nanha munna rahi hoon" (Classic baby song) [4 words]
 Output: "Nanha munna rahi hoon 🎵👶 Parv beta, you bring so much joy and light! May this little star always be surrounded by love, laughter and countless blessings 💝✨🙏" [~30 words]
 
-TONE MATCHING PRINCIPLE: Short input (1-5 words) → 50-80 words. Medium input (6-15 words) → 80-120 words. Song lyrics → complete poetically. Always MAX 150 words for readability.`
+Input: "Khuda kare tujhe har khushi mile" (Urdu shayari style) [6 words]
+Output: "Khuda kare tujhe har khushi mile, nanhe Parv ✨🙏 Tere jiwan mein noor hi noor ho, Har pal sitaron si chamak mile. May this little soul be blessed with endless joy and light 👶💝" [~40 words]
+
+Input: "Dua hai nanhe taare ko" (Poetic blessing) [5 words]
+Output: "Dua hai nanhe taare ko, Parv beta 🌟👶 Khushiyon ki baarish ho tere ghar mein, Muskurahat ka ujala ho har safar mein. May this little star shine bright with boundless blessings 🙏✨💝" [~35 words]
+
+Input: "फूलों सी खिले ज़िन्दगी" (Hindi poetic) [4 words]
+Output: "फूलों सी खिले ज़िन्दगी, प्यारे पर्व 🌸👶 हर दिन खुशियों से महके, हर पल प्यार से सजे। नन्हें सितारे की राहें रोशन हों, और हर ख्वाब पूरा हो 💝✨🙏" [~35 words]
+
+TONE MATCHING PRINCIPLE: Short input (1-5 words) → 50-80 words. Medium input (6-15 words) → 80-120 words. Song lyrics → complete poetically. Shayari → maintain rhyme and meter. Always MAX 150 words for readability.`
         },
         {
           role: "user",
