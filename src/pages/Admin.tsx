@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AdminAuth } from '@/components/AdminAuth'
 import { TextToSpeech } from '@/components/TextToSpeech'
+import { AudioProvider } from '@/contexts/AudioContext'
 import { toast } from 'sonner'
 import { 
   Users, 
@@ -1488,15 +1489,16 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Admin Dashboard
-            </h1>
-          </div>
+    <AudioProvider>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Admin Dashboard
+              </h1>
+            </div>
           <p className="text-gray-600 mb-4">Manage your baby ceremony invitations</p>
           <div className="flex items-center justify-center gap-3">
             <Button 
@@ -2306,6 +2308,7 @@ export default function Admin() {
                                     senderName={wish.name}
                                     senderGender={wish.defaultGender || wish.gender}
                                     showVoiceSelector={true}
+                                    instanceId={wish.id}
                                   />
                                 </div>
                               )}
@@ -2825,6 +2828,7 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
     </div>
+    </AudioProvider>
   )
 }
 

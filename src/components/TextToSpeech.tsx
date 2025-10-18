@@ -12,6 +12,7 @@ interface TextToSpeechProps {
   senderName?: string; // Optional: to auto-detect gender
   senderGender?: 'male' | 'female' | 'other'; // Preferred: actual gender from form
   showVoiceSelector?: boolean; // Show dropdown to select voice
+  instanceId?: string; // Optional: unique ID for per-instance voice preference storage
 }
 
 export function TextToSpeech({ 
@@ -20,13 +21,18 @@ export function TextToSpeech({
   className, 
   senderName,
   senderGender,
-  showVoiceSelector = true 
+  showVoiceSelector = true,
+  instanceId 
 }: TextToSpeechProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Create storage key: use instanceId if provided, otherwise use global key
+  const storageKey = instanceId ? `tts-voice-preference-${instanceId}` : 'tts-voice-preference';
+  
   // Persist voice selection in localStorage so it stays when component re-renders
   const [selectedVoiceType, setSelectedVoiceType] = useState<'male' | 'female' | 'auto'>(() => {
-    const saved = localStorage.getItem('tts-voice-preference');
+    const saved = localStorage.getItem(storageKey);
     return (saved === 'male' || saved === 'female' || saved === 'auto') ? saved : 'auto';
   });
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -36,8 +42,8 @@ export function TextToSpeech({
   // Save voice preference when changed
   const handleVoiceChange = (value: 'male' | 'female' | 'auto') => {
     setSelectedVoiceType(value);
-    localStorage.setItem('tts-voice-preference', value);
-    console.log(`Voice preference saved: ${value}`);
+    localStorage.setItem(storageKey, value);
+    console.log(`Voice preference saved for ${instanceId || 'global'}: ${value}`);
   };
 
   // Load available voices
