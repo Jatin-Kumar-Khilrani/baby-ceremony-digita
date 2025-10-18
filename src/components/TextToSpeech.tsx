@@ -217,8 +217,8 @@ export function TextToSpeech({
       
       console.log(`Looking for ${genderPreference} voice in ${voices.length} available voices`);
       
-      // **PRIORITY 1: Indian voices (hi-IN, en-IN)**
-      const indianVoices = voices.filter(voice => 
+      // **PRIORITY 1: North Indian voices (hi-IN, en-IN) - Rajasthan/Delhi accent preferred**
+      const northIndianVoices = voices.filter(voice => 
         voice.lang === 'hi-IN' || voice.lang === 'en-IN' ||
         voice.lang.startsWith('hi-') || voice.name.toLowerCase().includes('india')
       );
@@ -228,26 +228,27 @@ export function TextToSpeech({
         voice.lang.startsWith(voiceLang.split('-')[0]) || voice.lang === voiceLang
       );
 
-      // Combine: Prefer Indian voices, then language-matched voices
-      const voicePool = indianVoices.length > 0 ? indianVoices : languageVoices;
+      // Combine: Prefer North Indian voices first, then language-matched voices
+      const voicePool = northIndianVoices.length > 0 ? northIndianVoices : languageVoices;
 
-      // **PRIORITY 3: Match gender**
-      // Indian female voice names: Heera, Nisha, Lekha (Microsoft), Kalpana (Google)
-      // Indian male voice names: Rishi, Sharad, Hemant (Microsoft), Prabhat (Google)
+      // **PRIORITY 3: Match gender with North Indian accent preference**
+      // North Indian female voice names: Heera, Swara (Rajasthani/Delhi accent)
+      // Other Indian female: Nisha, Lekha (Microsoft), Kalpana (Google)
+      // North Indian male voice names: Rishi, Prabhat (Delhi accent), Sharad
+      // Other Indian male: Hemant (Microsoft)
       let preferredVoice = voicePool.find(voice => {
         const voiceNameLower = voice.name.toLowerCase();
         if (genderPreference === 'female') {
-          return voiceNameLower.includes('female') || voiceNameLower.includes('woman') || 
-                 voiceNameLower.includes('heera') || voiceNameLower.includes('nisha') ||
-                 voiceNameLower.includes('lekha') || voiceNameLower.includes('kalpana') ||
-                 voiceNameLower.includes('samantha') || voiceNameLower.includes('victoria') ||
-                 voiceNameLower.includes('zira') || voiceNameLower.includes('swara');
+          // Prioritize North Indian female voices first (Heera = Rajasthani, Swara = Delhi)
+          return voiceNameLower.includes('heera') || voiceNameLower.includes('swara') ||
+                 voiceNameLower.includes('nisha') || voiceNameLower.includes('lekha') ||
+                 voiceNameLower.includes('kalpana') || voiceNameLower.includes('female') || 
+                 voiceNameLower.includes('woman');
         } else {
-          return voiceNameLower.includes('male') || voiceNameLower.includes('man') ||
-                 voiceNameLower.includes('rishi') || voiceNameLower.includes('sharad') ||
-                 voiceNameLower.includes('hemant') || voiceNameLower.includes('prabhat') ||
-                 voiceNameLower.includes('david') || voiceNameLower.includes('mark') ||
-                 voiceNameLower.includes('james') || voiceNameLower.includes('george');
+          // Prioritize North Indian male voices first (Rishi = Delhi, Prabhat = Delhi)
+          return voiceNameLower.includes('rishi') || voiceNameLower.includes('prabhat') ||
+                 voiceNameLower.includes('sharad') || voiceNameLower.includes('hemant') ||
+                 voiceNameLower.includes('male') || voiceNameLower.includes('man');
         }
       });
 
@@ -275,7 +276,10 @@ export function TextToSpeech({
       
       if (preferredVoice) {
         utterance.voice = preferredVoice;
-        console.log(`Selected voice: ${preferredVoice.name} (${preferredVoice.lang}) for ${genderPreference}`);
+        // Identify if it's a North Indian accent voice
+        const isNorthIndian = preferredVoice.name.toLowerCase().match(/heera|swara|rishi|prabhat/);
+        const accentNote = isNorthIndian ? ' [North Indian accent]' : '';
+        console.log(`Selected voice: ${preferredVoice.name} (${preferredVoice.lang}) for ${genderPreference}${accentNote}`);
       } else {
         console.log('No preferred voice found, using default');
       }
