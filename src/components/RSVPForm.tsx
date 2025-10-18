@@ -612,6 +612,9 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
           style: { maxWidth: '500px' }
         })
         
+        // Mark RSVP as completed for attention guide
+        localStorage.setItem('baby-ceremony-rsvp-completed', 'true')
+        
         // Auto-join WhatsApp group if attending (open after short delay)
         if (formData.attending === 'yes' && formData.phone) {
           setTimeout(() => {

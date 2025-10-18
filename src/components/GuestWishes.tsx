@@ -146,6 +146,9 @@ export default function GuestWishes() {
           description: 'Your wish will appear after admin approval (usually within a few hours)'
         })
         
+        // Mark wish as completed for attention guide
+        localStorage.setItem('baby-ceremony-wish-completed', 'true')
+        
         setWishData({
           name: '',
           email: '',

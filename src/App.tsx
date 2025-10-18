@@ -33,6 +33,7 @@ import RSVPForm from './components/RSVPForm'
 import WelcomeScreen from './components/WelcomeScreen'
 import TourGuide from './components/TourGuide'
 import GuestWishes from './components/GuestWishes'
+import AttentionGuide from './components/AttentionGuide'
 
 interface RSVP {
   id: string
@@ -244,6 +245,8 @@ ${e.love} With Love,
       ) : (
         <div className="min-h-screen bg-background baby-pattern">
           <TourGuide />
+          {/* Attention Guide - floating reminders and tab animations */}
+          <AttentionGuide currentTab={currentTab} onNavigate={setCurrentTab} />
           <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Admin Link & Reset Welcome */}
         <div className="flex justify-end gap-2 mb-4">
@@ -253,10 +256,13 @@ ${e.love} With Love,
             onClick={() => {
               localStorage.removeItem('baby-ceremony-welcome-seen')
               localStorage.removeItem('baby-ceremony-tour-completed')
+              localStorage.removeItem('baby-ceremony-rsvp-completed')
+              localStorage.removeItem('baby-ceremony-wish-completed')
+              sessionStorage.removeItem('baby-ceremony-guide-dismissed')
               window.location.reload()
             }}
             className="text-muted-foreground hover:text-primary"
-            title="Reset Welcome Screen"
+            title="Reset Welcome Screen & Clear All Progress"
           >
             <Star size={16} className="mr-1" />
             Reset

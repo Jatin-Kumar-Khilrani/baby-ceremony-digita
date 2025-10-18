@@ -63,7 +63,7 @@ async function rsvps(request, context) {
     // Enable CORS
     const headers = {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -246,15 +246,91 @@ async function rsvps(request, context) {
                     body: JSON.stringify({ error: "Request body is required for RSVP submission" })
                 };
             }
-            // Get existing RSVPs and add the new one
+            // Get existing RSVPs
             const existingData = await getStorageData("rsvps.json");
             const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+            // Check for duplicate submission (by email, phone, or family name)
+            const duplicateRsvp = rsvpsArray.find((r) => {
+                // Check email match (case insensitive)
+                if (r.email && body.email &&
+                    r.email.toLowerCase() === body.email.toLowerCase()) {
+                    return true;
+                }
+                // Check phone match
+                if (r.phone && body.phone && r.phone === body.phone) {
+                    return true;
+                }
+                // Check family name match (case insensitive)
+                // Extract family name (last word in name)
+                const existingFamily = r.name?.trim().split(/\s+/).pop()?.toLowerCase();
+                const newFamily = body.name?.trim().split(/\s+/).pop()?.toLowerCase();
+                if (existingFamily && newFamily && existingFamily === newFamily) {
+                    return true;
+                }
+                return false;
+            });
+            // Block duplicate unless the existing RSVP has bypass enabled
+            if (duplicateRsvp && duplicateRsvp.allowDuplicateSubmission !== true) {
+                context.log('❌ Duplicate RSVP blocked:', {
+                    existing: duplicateRsvp.name,
+                    attempted: body.name,
+                    matchedBy: duplicateRsvp.email === body.email ? 'email' :
+                        duplicateRsvp.phone === body.phone ? 'phone' : 'family name'
+                });
+                return {
+                    status: 409, // Conflict
+                    headers,
+                    body: JSON.stringify({
+                        error: "Duplicate RSVP",
+                        message: `An RSVP from "${duplicateRsvp.name}" already exists. Please search for your RSVP below to edit it.`,
+                        existingName: duplicateRsvp.name
+                    })
+                };
+            }
+            // Add the new RSVP
             rsvpsArray.push(body);
+            context.log('✅ New RSVP added:', {
+                name: body.name,
+                email: body.email,
+                bypassEnabled: duplicateRsvp?.allowDuplicateSubmission === true
+            });
             await saveStorageData("rsvps.json", rsvpsArray);
             return {
                 status: 200,
                 headers,
                 body: JSON.stringify({ success: true })
+            };
+        }
+        else if (request.method === "PUT") {
+            // Update a single RSVP by ID
+            const body = await request.json();
+            if (!body || !body.id) {
+                return {
+                    status: 400,
+                    headers,
+                    body: JSON.stringify({ error: "RSVP ID is required for updates" })
+                };
+            }
+            // Get existing RSVPs
+            const existingData = await getStorageData("rsvps.json");
+            const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+            // Find and update the specific RSVP
+            const index = rsvpsArray.findIndex((r) => r.id === body.id);
+            if (index === -1) {
+                return {
+                    status: 404,
+                    headers,
+                    body: JSON.stringify({ error: "RSVP not found with the provided ID" })
+                };
+            }
+            // Update the RSVP
+            rsvpsArray[index] = body;
+            await saveStorageData("rsvps.json", rsvpsArray);
+            context.log('✅ RSVP updated successfully:', body.id);
+            return {
+                status: 200,
+                headers,
+                body: JSON.stringify({ success: true, rsvp: body })
             };
         }
         else {
@@ -275,7 +351,7 @@ async function rsvps(request, context) {
     }
 }
 functions_1.app.http('rsvps', {
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
     authLevel: 'anonymous',
     handler: rsvps
 });
