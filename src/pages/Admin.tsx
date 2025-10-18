@@ -304,6 +304,13 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
             <div className="space-y-4 pt-4 border-t">
               <h3 className="font-semibold text-lg">Travel & Accommodation</h3>
               
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+                <p className="text-xs text-blue-800">
+                  <strong>📌 Note:</strong> If arrival time is not specified, assume guest will arrive for dinner on 15th November 2025 (Event Date).
+                  Dinner is served at 8:00 PM.
+                </p>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="arrivalDateTime">Arrival Date & Time</Label>
@@ -313,6 +320,7 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
                     value={formData.arrivalDateTime || ''}
                     onChange={(e) => setFormData({ ...formData, arrivalDateTime: e.target.value })}
                   />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty if arriving for dinner (8:00 PM on 15th Nov)</p>
                 </div>
                 <div>
                   <Label htmlFor="departureDateTime">Departure Date & Time</Label>

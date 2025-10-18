@@ -547,7 +547,8 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       })
       
       // Check if existing RSVP has duplicate submission privilege
-      if (existing && !existing.allowDuplicateSubmission) {
+      // Block duplicate if: 1) existing RSVP found, AND 2) bypass is NOT explicitly enabled
+      if (existing && existing.allowDuplicateSubmission !== true) {
         toast.error(
           `This family has already submitted an RSVP. Search for "${existing.name}" below to edit it.`,
           { duration: 6000 }
