@@ -542,6 +542,7 @@ export default function GuestWishes() {
                         senderName={wish.name}
                         senderGender={wish.defaultGender || wish.gender} // Admin override takes precedence
                         showVoiceSelector={true}
+                        instanceId={wish.id}
                       />
                     </div>
                   )}
