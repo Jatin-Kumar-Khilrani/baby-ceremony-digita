@@ -49,13 +49,13 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Hidden audio element with gentle lullaby music */}
+      {/* Hidden audio element with Twinkle Twinkle Little Star lullaby */}
       <audio 
         ref={audioRef}
         loop
         preload="auto"
       >
-        <source src="/lullaby.mp3" type="audio/mpeg" />
+        <source src="/twinkle-lullaby.mp3" type="audio/mpeg" />
         Your browser does not support the audio element.
       </audio>
 
