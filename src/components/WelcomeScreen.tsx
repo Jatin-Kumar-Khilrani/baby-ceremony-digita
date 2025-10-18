@@ -1,14 +1,94 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowRight, Sparkle } from '@phosphor-icons/react'
+import { ArrowRight, Sparkle, Play, Pause, SpeakerHigh } from '@phosphor-icons/react'
+import { useState, useRef, useEffect } from 'react'
 
 interface WelcomeScreenProps {
   onContinue: () => void
 }
 
 export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Auto-play music when component mounts (with user gesture fallback)
+  useEffect(() => {
+    // Try to play automatically (may be blocked by browser)
+    const tryAutoPlay = async () => {
+      try {
+        if (audioRef.current) {
+          await audioRef.current.play()
+          setIsPlaying(true)
+        }
+      } catch (error) {
+        // Autoplay blocked - user will need to click play button
+        console.log('Autoplay blocked - user interaction required')
+      }
+    }
+    
+    // Small delay to let page load first
+    const timer = setTimeout(tryAutoPlay, 500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const toggleMusic = async () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+        setIsPlaying(false)
+      } else {
+        try {
+          await audioRef.current.play()
+          setIsPlaying(true)
+        } catch (error) {
+          console.error('Error playing audio:', error)
+        }
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Hidden audio element with royalty-free lullaby */}
+      <audio 
+        ref={audioRef}
+        loop
+        preload="auto"
+      >
+        <source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_4c3c6b9751.mp3" type="audio/mpeg" />
+      </audio>
+
+      {/* Floating Music Control Button */}
+      <button
+        onClick={toggleMusic}
+        className="fixed top-6 right-6 z-50 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 border-2 border-white/30 backdrop-blur-sm group"
+        aria-label={isPlaying ? 'Pause music' : 'Play music'}
+      >
+        {isPlaying ? (
+          <Pause size={24} weight="fill" className="animate-pulse" />
+        ) : (
+          <Play size={24} weight="fill" />
+        )}
+        
+        {/* Animated sound waves when playing */}
+        {isPlaying && (
+          <div className="absolute -inset-2 rounded-full border-2 border-white/30 animate-ping"></div>
+        )}
+        
+        {/* Tooltip */}
+        <span className="absolute top-full right-0 mt-2 bg-gray-900/90 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          {isPlaying ? '🎵 Pause lullaby' : '🎵 Play lullaby'}
+        </span>
+      </button>
+
+      {/* Music indicator badge */}
+      {isPlaying && (
+        <div className="fixed top-20 right-6 z-40 bg-white/95 backdrop-blur-sm text-gray-700 text-xs px-3 py-2 rounded-full shadow-lg border border-purple-200 animate-in fade-in slide-in-from-top-2 duration-500 flex items-center gap-2">
+          <SpeakerHigh size={16} className="text-purple-500 animate-pulse" weight="fill" />
+          <span className="font-medium">Playing lullaby</span>
+        </div>
+      )}
+      
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50/30 to-pink-50/20 animate-gradient"></div>
       
