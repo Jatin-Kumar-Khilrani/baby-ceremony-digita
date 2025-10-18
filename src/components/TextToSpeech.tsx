@@ -193,17 +193,20 @@ export function TextToSpeech({
       utterance.volume = 1.0;
 
       // Determine gender preference (priority: user selection > form data > name detection)
-      let genderPreference: 'male' | 'female' = 'female';
+      let genderPreference: 'male' | 'female';
       
       if (selectedVoiceType !== 'auto') {
-        // User manually selected voice type
+        // User manually selected voice type (highest priority)
         genderPreference = selectedVoiceType;
       } else if (senderGender && senderGender !== 'other') {
-        // Use gender from form
+        // Use gender from form (second priority)
         genderPreference = senderGender;
       } else if (senderName) {
-        // Fallback to name-based detection
+        // Fallback to name-based detection (third priority)
         genderPreference = detectGenderFromName(senderName);
+      } else {
+        // Final fallback when no information available
+        genderPreference = 'female';
       }
 
       // Set pitch based on gender
