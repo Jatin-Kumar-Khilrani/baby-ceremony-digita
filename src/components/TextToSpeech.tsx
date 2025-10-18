@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
@@ -38,6 +38,10 @@ export function TextToSpeech({
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isManuallyStopped, setIsManuallyStopped] = useState(false);
   const { setIsTTSPlaying } = useAudio();
+  
+  // iOS Safari workaround: Watchdog timer to detect stuck TTS
+  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSpeakingCheckRef = useRef<boolean>(false);
 
   // Save voice preference when changed
   const handleVoiceChange = (value: 'male' | 'female' | 'auto') => {
@@ -71,6 +75,56 @@ export function TextToSpeech({
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
   }, []);
+
+  // iOS Safari workaround: Watchdog to detect when TTS is stuck
+  useEffect(() => {
+    // Clear any existing watchdog
+    if (watchdogTimerRef.current) {
+      clearInterval(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
+    }
+
+    if (isSpeaking) {
+      // Start watchdog timer to check if speech is actually still active
+      console.log('Starting TTS watchdog timer (iOS Safari fix)');
+      watchdogTimerRef.current = setInterval(() => {
+        const isActuallySpeaking = window.speechSynthesis.speaking;
+        
+        // If we think we're speaking but the browser says we're not, cleanup
+        if (!isActuallySpeaking && lastSpeakingCheckRef.current === false) {
+          console.warn('iOS TTS watchdog: Speech finished but onend never fired, forcing cleanup');
+          setIsSpeaking(false);
+          setIsLoading(false);
+          setIsTTSPlaying(false);
+          if (watchdogTimerRef.current) {
+            clearInterval(watchdogTimerRef.current);
+            watchdogTimerRef.current = null;
+          }
+        }
+        
+        lastSpeakingCheckRef.current = isActuallySpeaking;
+      }, 500); // Check every 500ms
+    }
+
+    return () => {
+      if (watchdogTimerRef.current) {
+        clearInterval(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
+    };
+  }, [isSpeaking, setIsTTSPlaying]);
+
+  // Cleanup on unmount (iOS Safari fix)
+  useEffect(() => {
+    return () => {
+      console.log('TextToSpeech unmounting, cleaning up TTS state');
+      window.speechSynthesis.cancel();
+      setIsTTSPlaying(false);
+      if (watchdogTimerRef.current) {
+        clearInterval(watchdogTimerRef.current);
+      }
+    };
+  }, [setIsTTSPlaying]);
 
   // Detect gender from name (simple heuristic)
   const detectGenderFromName = (name: string): 'male' | 'female' => {
@@ -197,10 +251,11 @@ export function TextToSpeech({
 
     const speakChunk = (chunkIndex: number) => {
       if (chunkIndex >= textChunks.length) {
-        // All chunks spoken
+        // All chunks spoken - iOS Safari: ensure speech is fully cancelled
+        window.speechSynthesis.cancel();
         setIsSpeaking(false);
         setIsTTSPlaying(false);
-        console.log('All speech chunks completed');
+        console.log('All speech chunks completed, TTS state cleared');
         return;
       }
 
@@ -315,10 +370,21 @@ export function TextToSpeech({
 
       utterance.onend = () => {
         clearTimeout(timeoutId);
-        // Only log completion on last chunk
-        if (chunkIndex === textChunks.length - 1) {
-          console.log('TTS: Completed');
+        
+        // iOS Safari fix: Double-check if this was actually the last chunk
+        const isLastChunk = chunkIndex === textChunks.length - 1;
+        
+        if (isLastChunk) {
+          console.log('TTS: Last chunk completed, clearing state');
+          // Ensure cleanup happens even if speakChunk doesn't run
+          setTimeout(() => {
+            if (window.speechSynthesis.speaking === false) {
+              setIsSpeaking(false);
+              setIsTTSPlaying(false);
+            }
+          }, 100); // Small delay to ensure speech is fully stopped
         }
+        
         // Speak next chunk
         speakChunk(chunkIndex + 1);
       };
