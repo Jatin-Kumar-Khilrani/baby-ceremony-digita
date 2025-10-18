@@ -49,13 +49,14 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Hidden audio element with royalty-free lullaby */}
+      {/* Hidden audio element with gentle lullaby music */}
       <audio 
         ref={audioRef}
         loop
         preload="auto"
       >
-        <source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_4c3c6b9751.mp3" type="audio/mpeg" />
+        <source src="/lullaby.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
       </audio>
 
       {/* Floating Music Control Button */}
