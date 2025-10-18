@@ -24,10 +24,21 @@ export function TextToSpeech({
 }: TextToSpeechProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedVoiceType, setSelectedVoiceType] = useState<'male' | 'female' | 'auto'>('auto');
+  // Persist voice selection in localStorage so it stays when component re-renders
+  const [selectedVoiceType, setSelectedVoiceType] = useState<'male' | 'female' | 'auto'>(() => {
+    const saved = localStorage.getItem('tts-voice-preference');
+    return (saved === 'male' || saved === 'female' || saved === 'auto') ? saved : 'auto';
+  });
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isManuallyStopped, setIsManuallyStopped] = useState(false);
   const { setIsTTSPlaying } = useAudio();
+
+  // Save voice preference when changed
+  const handleVoiceChange = (value: 'male' | 'female' | 'auto') => {
+    setSelectedVoiceType(value);
+    localStorage.setItem('tts-voice-preference', value);
+    console.log(`Voice preference saved: ${value}`);
+  };
 
   // Load available voices
   useEffect(() => {
@@ -401,10 +412,11 @@ export function TextToSpeech({
         </span>
       </Button>
 
-      {showVoiceSelector && !isSpeaking && (
+      {showVoiceSelector && (
         <Select 
           value={selectedVoiceType} 
-          onValueChange={(value: 'male' | 'female' | 'auto') => setSelectedVoiceType(value)}
+          onValueChange={handleVoiceChange}
+          disabled={isSpeaking}
         >
           <SelectTrigger className="w-[120px] h-8 text-xs">
             <SelectValue placeholder="Voice" />
