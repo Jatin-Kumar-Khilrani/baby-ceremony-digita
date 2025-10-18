@@ -439,6 +439,43 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
 
     if (editingRsvp) {
       // Update existing RSVP
+      
+      // Check if user is changing email/phone to match ANOTHER existing RSVP
+      const conflictingRsvp = rsvps?.find(rsvp => {
+        // Skip the RSVP we're currently editing
+        if (rsvp.id === editingRsvp.id) return false
+        
+        // Check email match (case insensitive)
+        if (rsvp.email && formData.email && 
+            rsvp.email.toLowerCase() === formData.email.toLowerCase()) {
+          return true
+        }
+        
+        // Check phone match
+        if (rsvp.phone && formData.phone && rsvp.phone === formData.phone) {
+          return true
+        }
+        
+        // Check family name match (case insensitive)
+        const existingFamily = rsvp.name.trim().split(/\s+/).pop()?.toLowerCase()
+        const newFamily = formData.name.trim().split(/\s+/).pop()?.toLowerCase()
+        
+        if (existingFamily && newFamily && existingFamily === newFamily) {
+          return true
+        }
+        
+        return false
+      })
+      
+      // Block if conflicting RSVP found and it doesn't have bypass enabled
+      if (conflictingRsvp && conflictingRsvp.allowDuplicateSubmission !== true) {
+        toast.error(
+          `Cannot update: This email/phone/family name matches "${conflictingRsvp.name}" who has already submitted an RSVP.`,
+          { duration: 6000 }
+        )
+        return
+      }
+      
       // For editing, we don't need the full array since we'll use the API endpoint
       const updatedRSVP: RSVP = {
         ...editingRsvp,
@@ -582,6 +619,15 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         })
 
         if (!response.ok) {
+          // Handle duplicate RSVP error from backend
+          if (response.status === 409) {
+            const errorData = await response.json();
+            toast.error(
+              errorData.message || 'This family has already submitted an RSVP. Search for it below to edit.',
+              { duration: 6000 }
+            );
+            return;
+          }
           throw new Error('Failed to save RSVP')
         }
 

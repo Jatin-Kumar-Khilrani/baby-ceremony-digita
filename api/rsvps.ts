@@ -279,10 +279,63 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
         };
       }
       
-      // Get existing RSVPs and add the new one
+      // Get existing RSVPs
       const existingData = await getStorageData("rsvps.json");
       const rsvpsArray = Array.isArray(existingData) ? existingData : (existingData ? [existingData] : []);
+      
+      // Check for duplicate submission (by email, phone, or family name)
+      const duplicateRsvp = rsvpsArray.find((r: any) => {
+        // Check email match (case insensitive)
+        if (r.email && body.email && 
+            r.email.toLowerCase() === body.email.toLowerCase()) {
+          return true;
+        }
+        
+        // Check phone match
+        if (r.phone && body.phone && r.phone === body.phone) {
+          return true;
+        }
+        
+        // Check family name match (case insensitive)
+        // Extract family name (last word in name)
+        const existingFamily = r.name?.trim().split(/\s+/).pop()?.toLowerCase();
+        const newFamily = body.name?.trim().split(/\s+/).pop()?.toLowerCase();
+        
+        if (existingFamily && newFamily && existingFamily === newFamily) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      // Block duplicate unless the existing RSVP has bypass enabled
+      if (duplicateRsvp && duplicateRsvp.allowDuplicateSubmission !== true) {
+        context.log('❌ Duplicate RSVP blocked:', {
+          existing: duplicateRsvp.name,
+          attempted: body.name,
+          matchedBy: duplicateRsvp.email === body.email ? 'email' : 
+                     duplicateRsvp.phone === body.phone ? 'phone' : 'family name'
+        });
+        
+        return {
+          status: 409, // Conflict
+          headers,
+          body: JSON.stringify({ 
+            error: "Duplicate RSVP",
+            message: `An RSVP from "${duplicateRsvp.name}" already exists. Please search for your RSVP below to edit it.`,
+            existingName: duplicateRsvp.name
+          })
+        };
+      }
+      
+      // Add the new RSVP
       rsvpsArray.push(body);
+      
+      context.log('✅ New RSVP added:', {
+        name: body.name,
+        email: body.email,
+        bypassEnabled: duplicateRsvp?.allowDuplicateSubmission === true
+      });
       
       await saveStorageData("rsvps.json", rsvpsArray);
       return {
