@@ -281,13 +281,21 @@ export function TextToSpeech({
         genderPreference = 'female';
       }
 
-      // Set pitch based on gender
-      utterance.pitch = genderPreference === 'female' ? 1.1 : 0.9;
-
       // Try to find a suitable voice matching gender preference
       const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
       
-      console.log(`Looking for ${genderPreference} voice in ${voices.length} available voices`);
+      // Mobile device detection
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      console.log(`Looking for ${genderPreference} voice in ${voices.length} available voices (Mobile: ${isMobile})`);
+      
+      // Log available voices on mobile to help debug
+      if (isMobile && voices.length > 0) {
+        console.log('Mobile voices available:', voices.map(v => `${v.name} (${v.lang})`).join(', '));
+      }
+      
+      // Set pitch based on gender - MORE AGGRESSIVE on mobile since voice selection is limited
+      utterance.pitch = genderPreference === 'female' ? (isMobile ? 1.2 : 1.1) : (isMobile ? 0.8 : 0.9);
       
       // **PRIORITY 1: North Indian voices (hi-IN, en-IN) - Rajasthan/Delhi accent preferred**
       const northIndianVoices = voices.filter(voice => 
@@ -336,6 +344,20 @@ export function TextToSpeech({
         });
       }
       
+      // **MOBILE-SPECIFIC FALLBACK**: iOS often has limited voices with generic names
+      if (!preferredVoice && isMobile && voices.length > 0) {
+        // Try to find a voice that might match based on index/position
+        // iOS typically has voices in order, sometimes male voices come later
+        if (genderPreference === 'male' && voices.length > 1) {
+          // Try the second half of available voices for male
+          preferredVoice = voices[Math.floor(voices.length / 2)];
+          console.log('Mobile fallback: Trying voice from second half for male preference');
+        } else {
+          preferredVoice = voices[0];
+          console.log('Mobile fallback: Using first available voice');
+        }
+      }
+      
       // **FALLBACK 2: Any Indian voice or language-matched voice**
       if (!preferredVoice && voicePool.length > 0) {
         preferredVoice = voicePool[0];
@@ -344,6 +366,7 @@ export function TextToSpeech({
       // **LAST RESORT: Any voice**
       if (!preferredVoice && voices.length > 0) {
         preferredVoice = voices[0];
+        console.log('Last resort: Using default voice');
       }
       
       if (preferredVoice) {
@@ -351,9 +374,15 @@ export function TextToSpeech({
         // Identify if it's a North Indian accent voice
         const isNorthIndian = preferredVoice.name.toLowerCase().match(/heera|swara|rishi|prabhat/);
         const accentNote = isNorthIndian ? ' [North Indian accent]' : '';
-        console.log(`Selected voice: ${preferredVoice.name} (${preferredVoice.lang}) for ${genderPreference}${accentNote}`);
+        console.log(`✓ Selected voice: ${preferredVoice.name} (${preferredVoice.lang}) for ${genderPreference}${accentNote}, pitch: ${utterance.pitch}`);
+        
+        // Mobile debugging: Show user selection vs actual voice
+        if (isMobile && selectedVoiceType !== 'auto') {
+          console.log(`Mobile: User selected "${selectedVoiceType}", applying voice "${preferredVoice.name}" with pitch ${utterance.pitch}`);
+        }
       } else {
-        console.log('No preferred voice found, using default');
+        console.log('⚠ No preferred voice found, using default browser voice with pitch adjustment');
+        console.log(`Default voice will use pitch: ${utterance.pitch} for ${genderPreference}`);
       }
 
       utterance.onstart = () => {
@@ -485,26 +514,34 @@ export function TextToSpeech({
       </Button>
 
       {showVoiceSelector && (
-        <Select 
-          value={selectedVoiceType} 
-          onValueChange={handleVoiceChange}
-          disabled={isSpeaking}
-        >
-          <SelectTrigger className="w-[120px] h-8 text-xs">
-            <SelectValue placeholder="Voice" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">
-              <span className="text-xs">🎭 Auto</span>
-            </SelectItem>
-            <SelectItem value="female">
-              <span className="text-xs">👩 Female</span>
-            </SelectItem>
-            <SelectItem value="male">
-              <span className="text-xs">👨 Male</span>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <Select 
+            value={selectedVoiceType} 
+            onValueChange={handleVoiceChange}
+            disabled={isSpeaking}
+          >
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <SelectValue placeholder="Voice" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">
+                <span className="text-xs">🎭 Auto</span>
+              </SelectItem>
+              <SelectItem value="female">
+                <span className="text-xs">👩 Female</span>
+              </SelectItem>
+              <SelectItem value="male">
+                <span className="text-xs">👨 Male</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {/* Mobile voice limitation note */}
+          {selectedVoiceType !== 'auto' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+            <span className="text-[9px] text-gray-500 italic">
+              📱 Voice uses pitch adjustment
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
