@@ -408,10 +408,14 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
     const eventDateStr = '15th November 2025'
     
     if (formData.attending === 'yes') {
-      // Validate arrival date (should be on or before event date)
+      // Validate arrival date (should be on or before event date - comparing dates only)
       if (formData.arrivalDateTime) {
         const arrivalDate = new Date(formData.arrivalDateTime)
-        if (arrivalDate > eventDate) {
+        const arrivalDateOnly = new Date(arrivalDate.getFullYear(), arrivalDate.getMonth(), arrivalDate.getDate())
+        const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
+        
+        // Allow any time on November 15th or earlier
+        if (arrivalDateOnly > eventDateOnly) {
           toast.error(`Arrival date cannot be after the event date (${eventDateStr})`)
           return
         }
@@ -420,7 +424,9 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
       // Validate departure date (should be on or after event date)
       if (formData.departureDateTime) {
         const departureDate = new Date(formData.departureDateTime)
-        if (departureDate < eventDate) {
+        const eventDateStart = new Date('2025-11-15')
+        eventDateStart.setHours(0, 0, 0, 0) // Set to start of day
+        if (departureDate < eventDateStart) {
           toast.error(`Departure date cannot be before the event date (${eventDateStr})`)
           return
         }
