@@ -296,15 +296,6 @@ export async function rsvps(request: HttpRequest, context: InvocationContext): P
           return true;
         }
         
-        // Check family name match (case insensitive)
-        // Extract family name (last word in name)
-        const existingFamily = r.name?.trim().split(/\s+/).pop()?.toLowerCase();
-        const newFamily = body.name?.trim().split(/\s+/).pop()?.toLowerCase();
-        
-        if (existingFamily && newFamily && existingFamily === newFamily) {
-          return true;
-        }
-        
         return false;
       });
       
