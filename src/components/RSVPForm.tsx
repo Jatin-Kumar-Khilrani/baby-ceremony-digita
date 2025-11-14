@@ -619,7 +619,10 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         })
         
         // Mark RSVP as completed for attention guide
+        // Save submission info to localStorage (for this specific email only)
         localStorage.setItem('baby-ceremony-rsvp-completed', 'true')
+        localStorage.setItem('baby-ceremony-last-rsvp-email', formData.email.toLowerCase())
+        localStorage.setItem('baby-ceremony-last-rsvp-name', formData.name)
         
         // Auto-join WhatsApp group if attending (open after short delay)
         if (formData.attending === 'yes' && formData.phone) {
@@ -867,21 +870,39 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {!editingRsvp && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex gap-3">
-                  <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-blue-900">
-                      🔐 How to edit your RSVP later
-                    </p>
-                    <p className="text-xs text-blue-700 mt-1">
-                      Search for your RSVP above, and we'll send you a PIN via email. You can also use Google Sign-In if you have a Google account.
-                    </p>
+              <>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex gap-3">
+                    <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900">
+                        🔐 How to edit your RSVP later
+                      </p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        Search for your RSVP above, and we'll send you a PIN via email. You can also use Google Sign-In if you have a Google account.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+                
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                  <div className="flex gap-3">
+                    <svg className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-purple-900">
+                        👨‍👩‍👧‍👦 RSVPing for multiple guests?
+                      </p>
+                      <p className="text-xs text-purple-700 mt-1">
+                        You can submit multiple RSVPs from the same device. Just use a <strong>different email or phone number</strong> for each guest.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
             <div className="space-y-4">
               {/* Name and Email - Full width on mobile, side-by-side on desktop */}
