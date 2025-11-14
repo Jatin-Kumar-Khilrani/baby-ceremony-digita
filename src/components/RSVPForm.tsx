@@ -544,15 +544,6 @@ export default function RSVPForm({ rsvps, setRSVPs }: RSVPFormProps) {
           return true
         }
         
-        // Check family name match (case insensitive)
-        // Extract family name (last word in name)
-        const existingFamily = rsvp.name.trim().split(/\s+/).pop()?.toLowerCase()
-        const newFamily = formData.name.trim().split(/\s+/).pop()?.toLowerCase()
-        
-        if (existingFamily && newFamily && existingFamily === newFamily) {
-          return true
-        }
-        
         return false
       })
       
