@@ -56,11 +56,19 @@ function calculateMeals(rsvps: RSVP[]) {
     const guestCount = rsvp.guests || 1
     
     // PRIORITY 1: Use manual meal preferences if set by admin
-    if (rsvp.mealPreferences) {
-      breakfast15 += rsvp.mealPreferences.breakfast15 ?? 0
-      lunch15 += rsvp.mealPreferences.lunch15 ?? 0
-      dinner15 += rsvp.mealPreferences.dinner15 ?? 0
-      breakfast16 += rsvp.mealPreferences.breakfast16 ?? 0
+    // Check if ANY meal preference is explicitly set (not null/undefined)
+    const hasManualPreferences = rsvp.mealPreferences && (
+      rsvp.mealPreferences.breakfast15 !== undefined ||
+      rsvp.mealPreferences.lunch15 !== undefined ||
+      rsvp.mealPreferences.dinner15 !== undefined ||
+      rsvp.mealPreferences.breakfast16 !== undefined
+    )
+    
+    if (hasManualPreferences) {
+      breakfast15 += rsvp.mealPreferences!.breakfast15 ?? guestCount
+      lunch15 += rsvp.mealPreferences!.lunch15 ?? guestCount
+      dinner15 += rsvp.mealPreferences!.dinner15 ?? guestCount
+      breakfast16 += rsvp.mealPreferences!.breakfast16 ?? 0
       return // Skip automatic calculation
     }
     
