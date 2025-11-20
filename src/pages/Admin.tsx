@@ -392,13 +392,16 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
                     min="0"
                     max={formData.guests}
                     value={formData.mealPreferences?.breakfast15 ?? formData.guests}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      mealPreferences: { 
-                        ...formData.mealPreferences, 
-                        breakfast15: parseInt(e.target.value) || 0 
-                      } 
-                    })}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value)
+                      setFormData({ 
+                        ...formData, 
+                        mealPreferences: { 
+                          ...formData.mealPreferences, 
+                          breakfast15: val
+                        } 
+                      })
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">8:00 AM</p>
                 </div>
@@ -410,13 +413,16 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
                     min="0"
                     max={formData.guests}
                     value={formData.mealPreferences?.lunch15 ?? formData.guests}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      mealPreferences: { 
-                        ...formData.mealPreferences, 
-                        lunch15: parseInt(e.target.value) || 0 
-                      } 
-                    })}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value)
+                      setFormData({ 
+                        ...formData, 
+                        mealPreferences: { 
+                          ...formData.mealPreferences, 
+                          lunch15: val
+                        } 
+                      })
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">1:00 PM</p>
                 </div>
@@ -428,13 +434,16 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
                     min="0"
                     max={formData.guests}
                     value={formData.mealPreferences?.dinner15 ?? formData.guests}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      mealPreferences: { 
-                        ...formData.mealPreferences, 
-                        dinner15: parseInt(e.target.value) || 0 
-                      } 
-                    })}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value)
+                      setFormData({ 
+                        ...formData, 
+                        mealPreferences: { 
+                          ...formData.mealPreferences, 
+                          dinner15: val
+                        } 
+                      })
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">8:00 PM</p>
                 </div>
@@ -446,13 +455,16 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
                     min="0"
                     max={formData.guests}
                     value={formData.mealPreferences?.breakfast16 ?? 0}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      mealPreferences: { 
-                        ...formData.mealPreferences, 
-                        breakfast16: parseInt(e.target.value) || 0 
-                      } 
-                    })}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value)
+                      setFormData({ 
+                        ...formData, 
+                        mealPreferences: { 
+                          ...formData.mealPreferences, 
+                          breakfast16: val
+                        } 
+                      })
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">If staying overnight</p>
                 </div>
