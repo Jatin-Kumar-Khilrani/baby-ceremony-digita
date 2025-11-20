@@ -107,10 +107,8 @@ function calculateMeals(rsvps: RSVP[]) {
     // Anyone who arrives BEFORE 10 AM on Nov 15 gets breakfast
     if (arrival) {
       const nov15Morning = new Date('2025-11-15T10:00:00')
-      // Only count if arrival is on or after Nov 14 (not way in the past)
-      const nov14Start = new Date('2025-11-14T00:00:00')
-      if (arrival >= nov14Start && arrival < nov15Morning) {
-        // Arrived between Nov 14-15 before 10 AM = gets breakfast
+      if (arrival < nov15Morning) {
+        // Arrived before 10 AM Nov 15 = gets breakfast
         breakfast15 += guestCount
       }
     }
@@ -118,9 +116,8 @@ function calculateMeals(rsvps: RSVP[]) {
     // Nov 15th - LUNCH
     if (arrival) {
       const nov15Lunch = new Date('2025-11-15T14:00:00')
-      const nov14Start = new Date('2025-11-14T00:00:00')
-      if (arrival >= nov14Start && arrival < nov15Lunch) {
-        // Arrived between Nov 14-15 before 2 PM = gets lunch
+      if (arrival < nov15Lunch) {
+        // Arrived before 2 PM Nov 15 = gets lunch
         lunch15 += guestCount
       }
     }
@@ -128,11 +125,10 @@ function calculateMeals(rsvps: RSVP[]) {
     // Nov 15th - DINNER
     if (arrival) {
       const nov15Dinner = new Date('2025-11-15T22:00:00')
-      const nov14Start = new Date('2025-11-14T00:00:00')
       const departsBefore15Evening = departure && departure.getDate() === 15 && departure.getHours() < dinnerEnd
       
-      if (!departsBefore15Evening && arrival >= nov14Start && arrival < nov15Dinner) {
-        // Arrived between Nov 14-15 before 10 PM AND not leaving same evening = gets dinner
+      if (!departsBefore15Evening && arrival < nov15Dinner) {
+        // Arrived before 10 PM Nov 15 AND not leaving same evening = gets dinner
         dinner15 += guestCount
       }
     }
