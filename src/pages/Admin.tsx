@@ -616,7 +616,9 @@ export default function Admin() {
       
       // Travel stats
       const needingTransport = attending.filter((r: RSVP) => r.transportNeeded).length
-      const roomsAllocated = attending.filter((r: RSVP) => r.roomNumber).length
+      // Count unique rooms being used (multiple RSVPs can share a room)
+      const uniqueRooms = new Set(attending.filter((r: RSVP) => r.roomNumber).map((r: RSVP) => r.roomNumber))
+      const roomsAllocated = uniqueRooms.size
       const meals = calculateMeals(rsvpArray)
       
       // Fasting count - guests with dietary restrictions mentioning fasting
