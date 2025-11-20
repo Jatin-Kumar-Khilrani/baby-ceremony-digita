@@ -26,7 +26,8 @@ async function streamToBuffer(readableStream: NodeJS.ReadableStream): Promise<Bu
 }
 
 export async function scheduledBackup(myTimer: Timer, context: InvocationContext): Promise<void> {
-  context.log('⏰ Scheduled backup triggered at:', new Date().toISOString());
+  const istTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false });
+  context.log('⏰ Scheduled backup triggered at:', new Date().toISOString(), '(IST:', istTime + ')');
 
   if (!connectionString) {
     context.error("Azure Storage connection string not configured");
@@ -130,9 +131,10 @@ export async function scheduledBackup(myTimer: Timer, context: InvocationContext
   }
 }
 
-// Run every day at 2:00 AM UTC (using NCRONTAB expression)
+// Run every day at 8:30 AM UTC = 2:00 PM IST (using NCRONTAB expression)
 // Format: {second} {minute} {hour} {day} {month} {day-of-week}
+// IST is UTC+5:30, so 2:00 PM IST = 8:30 AM UTC
 app.timer('scheduledBackup', {
-  schedule: '0 0 2 * * *', // Every day at 2:00 AM
+  schedule: '0 30 8 * * *', // Every day at 8:30 AM UTC (2:00 PM IST)
   handler: scheduledBackup
 });

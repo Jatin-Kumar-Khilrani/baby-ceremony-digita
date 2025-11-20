@@ -1,0 +1,44 @@
+name: Daily Backup at 2 PM IST
+
+on:
+  schedule:
+    # Runs at 8:30 AM UTC every day (2:00 PM IST)
+    # IST is UTC+5:30, so 2:00 PM IST = 8:30 AM UTC
+    - cron: '30 8 * * *'
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    name: Create Daily Backup
+    
+    steps:
+      - name: Trigger Backup API
+        run: |
+          echo "🔄 Triggering backup at $(date)"
+          echo "📅 IST Time: $(TZ='Asia/Kolkata' date)"
+          
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.BACKUP_API_URL }}/api/backup?action=create" \
+            -H "Content-Type: application/json" \
+            -H "x-admin-key: ${{ secrets.ADMIN_SECRET_KEY }}")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "📊 Response Code: $http_code"
+          echo "📦 Response Body:"
+          echo "$body" | jq '.' || echo "$body"
+          
+          if [ $http_code -eq 200 ]; then
+            echo "✅ Backup completed successfully!"
+          else
+            echo "❌ Backup failed with status code: $http_code"
+            exit 1
+          fi
+
+      - name: Verify Backup Success
+        if: success()
+        run: |
+          echo "✅ Daily backup completed at 2:00 PM IST"
+          echo "📍 Next backup scheduled for tomorrow at 2:00 PM IST"
