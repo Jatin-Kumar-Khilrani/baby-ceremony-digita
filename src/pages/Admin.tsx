@@ -316,11 +316,44 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
 
           <div>
             <Label htmlFor="dietary">Dietary Restrictions</Label>
-            <Input
-              id="dietary"
-              value={formData.dietaryRestrictions || ''}
-              onChange={(e) => setFormData({ ...formData, dietaryRestrictions: e.target.value })}
-            />
+            <Select
+              value={
+                ['None', 'Vegetarian', 'Vegan', 'Jain (No onion/garlic)', 'Fasting', 'Gluten-free', 'Lactose intolerant'].includes(formData.dietaryRestrictions || '')
+                  ? formData.dietaryRestrictions || 'None'
+                  : 'Other'
+              }
+              onValueChange={(value) => {
+                if (value === 'Other') {
+                  // Keep current value if it's custom, or prompt for input
+                  const customValue = prompt('Enter dietary restrictions:', formData.dietaryRestrictions || '')
+                  if (customValue !== null) {
+                    setFormData({ ...formData, dietaryRestrictions: customValue })
+                  }
+                } else if (value === 'None') {
+                  setFormData({ ...formData, dietaryRestrictions: '' })
+                } else {
+                  setFormData({ ...formData, dietaryRestrictions: value })
+                }
+              }}
+            >
+              <SelectTrigger id="dietary">
+                <SelectValue placeholder="Select dietary restrictions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="None">None</SelectItem>
+                <SelectItem value="Vegetarian">Vegetarian</SelectItem>
+                <SelectItem value="Vegan">Vegan</SelectItem>
+                <SelectItem value="Jain (No onion/garlic)">Jain (No onion/garlic)</SelectItem>
+                <SelectItem value="Fasting">Fasting</SelectItem>
+                <SelectItem value="Gluten-free">Gluten-free</SelectItem>
+                <SelectItem value="Lactose intolerant">Lactose intolerant</SelectItem>
+                <SelectItem value="Other">Other (Custom)</SelectItem>
+              </SelectContent>
+            </Select>
+            {formData.dietaryRestrictions && 
+             !['None', 'Vegetarian', 'Vegan', 'Jain (No onion/garlic)', 'Fasting', 'Gluten-free', 'Lactose intolerant'].includes(formData.dietaryRestrictions) && (
+              <p className="text-sm text-muted-foreground mt-1">Custom: {formData.dietaryRestrictions}</p>
+            )}
           </div>
 
           <div>
