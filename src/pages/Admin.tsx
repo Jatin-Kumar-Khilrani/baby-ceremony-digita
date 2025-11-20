@@ -41,9 +41,9 @@ import {
 
 const API_BASE = import.meta.env.DEV ? 'http://localhost:7071/api' : '/api'
 
-// Helper function to calculate meals based on arrival/departure times
+// Helper function to calculate meals based on manual preferences or arrival/departure times
 function calculateMeals(rsvps: RSVP[]) {
-  const attendingWithTravel = rsvps.filter(r => r.attending && (r.arrivalDateTime || r.departureDateTime))
+  const attending = rsvps.filter(r => r.attending)
   
   let breakfast15 = 0
   let lunch15 = 0
@@ -52,8 +52,26 @@ function calculateMeals(rsvps: RSVP[]) {
   let lunch16 = 0
   let dinner16 = 0
   
-  attendingWithTravel.forEach(rsvp => {
+  attending.forEach(rsvp => {
     const guestCount = rsvp.guests || 1
+    
+    // PRIORITY 1: Use manual meal preferences if set by admin
+    if (rsvp.mealPreferences) {
+      breakfast15 += rsvp.mealPreferences.breakfast15 ?? 0
+      lunch15 += rsvp.mealPreferences.lunch15 ?? 0
+      dinner15 += rsvp.mealPreferences.dinner15 ?? 0
+      breakfast16 += rsvp.mealPreferences.breakfast16 ?? 0
+      return // Skip automatic calculation
+    }
+    
+    // PRIORITY 2: Automatic calculation based on arrival/departure times
+    if (!rsvp.arrivalDateTime && !rsvp.departureDateTime) {
+      // No travel info - assume attending all meals on event day (15th Nov)
+      breakfast15 += guestCount
+      lunch15 += guestCount
+      dinner15 += guestCount
+      return
+    }
     
     const arrival = rsvp.arrivalDateTime ? new Date(rsvp.arrivalDateTime) : null
     const departure = rsvp.departureDateTime ? new Date(rsvp.departureDateTime) : null
@@ -168,6 +186,13 @@ interface RSVP {
   transportDetails?: string
   adminNotes?: string
   allowDuplicateSubmission?: boolean // Admin privilege to bypass duplicate check
+  // Meal preferences (for flexible planning)
+  mealPreferences?: {
+    breakfast15?: number // How many guests attending breakfast on 15th Nov
+    lunch15?: number // How many guests attending lunch on 15th Nov
+    dinner15?: number // How many guests attending dinner on 15th Nov
+    breakfast16?: number // How many guests attending breakfast on 16th Nov (if staying)
+  }
 }
 
 interface Wish {
@@ -299,6 +324,100 @@ function RSVPEditDialog({ rsvp, onUpdate }: { rsvp: RSVP, onUpdate: (rsvp: RSVP)
               rows={3}
             />
           </div>
+
+          {/* Meal Planning Section */}
+          {formData.attending && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">🍽️ Meal Planning</h3>
+                <span className="text-xs text-muted-foreground">Total Guests: {formData.guests}</span>
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                <p className="text-xs text-amber-800 mb-2">
+                  <strong>💡 Tip:</strong> Track which meals each guest will attend. Some may skip lunch to visit Jodhpur Fort!
+                </p>
+                <p className="text-xs text-amber-700">
+                  Example: If 3 guests booked, but 2 want lunch outside, set Lunch = 1
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="breakfast15">Breakfast (15th Nov)</Label>
+                  <Input
+                    id="breakfast15"
+                    type="number"
+                    min="0"
+                    max={formData.guests}
+                    value={formData.mealPreferences?.breakfast15 ?? formData.guests}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      mealPreferences: { 
+                        ...formData.mealPreferences, 
+                        breakfast15: parseInt(e.target.value) || 0 
+                      } 
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">8:00 AM</p>
+                </div>
+                <div>
+                  <Label htmlFor="lunch15">Lunch (15th Nov)</Label>
+                  <Input
+                    id="lunch15"
+                    type="number"
+                    min="0"
+                    max={formData.guests}
+                    value={formData.mealPreferences?.lunch15 ?? formData.guests}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      mealPreferences: { 
+                        ...formData.mealPreferences, 
+                        lunch15: parseInt(e.target.value) || 0 
+                      } 
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">1:00 PM</p>
+                </div>
+                <div>
+                  <Label htmlFor="dinner15">Dinner (15th Nov)</Label>
+                  <Input
+                    id="dinner15"
+                    type="number"
+                    min="0"
+                    max={formData.guests}
+                    value={formData.mealPreferences?.dinner15 ?? formData.guests}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      mealPreferences: { 
+                        ...formData.mealPreferences, 
+                        dinner15: parseInt(e.target.value) || 0 
+                      } 
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">8:00 PM</p>
+                </div>
+                <div>
+                  <Label htmlFor="breakfast16">Breakfast (16th Nov)</Label>
+                  <Input
+                    id="breakfast16"
+                    type="number"
+                    min="0"
+                    max={formData.guests}
+                    value={formData.mealPreferences?.breakfast16 ?? 0}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      mealPreferences: { 
+                        ...formData.mealPreferences, 
+                        breakfast16: parseInt(e.target.value) || 0 
+                      } 
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">If staying overnight</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Travel & Accommodation Section */}
           {formData.attending && (
@@ -2007,6 +2126,35 @@ export default function Admin() {
                                           <Bed className="w-3 h-3 mr-1" />
                                           {rsvp.roomNumber}
                                         </Badge>
+                                      </div>
+                                    )}
+                                    {rsvp.mealPreferences && (
+                                      <div className="pt-2 border-t border-blue-200 mt-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-xs text-gray-600 font-medium">🍽️ Meal Attendance:</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          {rsvp.mealPreferences.breakfast15 !== undefined && rsvp.mealPreferences.breakfast15 !== rsvp.guests && (
+                                            <Badge variant="outline" className="text-xs justify-start">
+                                              🌅 B'fast 15th: {rsvp.mealPreferences.breakfast15}/{rsvp.guests}
+                                            </Badge>
+                                          )}
+                                          {rsvp.mealPreferences.lunch15 !== undefined && rsvp.mealPreferences.lunch15 !== rsvp.guests && (
+                                            <Badge variant="outline" className="text-xs justify-start">
+                                              🍛 Lunch 15th: {rsvp.mealPreferences.lunch15}/{rsvp.guests}
+                                            </Badge>
+                                          )}
+                                          {rsvp.mealPreferences.dinner15 !== undefined && rsvp.mealPreferences.dinner15 !== rsvp.guests && (
+                                            <Badge variant="outline" className="text-xs justify-start">
+                                              🌙 Dinner 15th: {rsvp.mealPreferences.dinner15}/{rsvp.guests}
+                                            </Badge>
+                                          )}
+                                          {rsvp.mealPreferences.breakfast16 !== undefined && rsvp.mealPreferences.breakfast16 > 0 && (
+                                            <Badge variant="outline" className="text-xs justify-start">
+                                              🌅 B'fast 16th: {rsvp.mealPreferences.breakfast16}/{rsvp.guests}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
                                     )}
                                     {rsvp.transportDetails && (
